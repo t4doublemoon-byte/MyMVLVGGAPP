@@ -8,21 +8,37 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK (v10.13.0) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-        window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, writeBatch };
+        window.FirebaseSDK = { 
+            initializeApp, 
+            getAuth, 
+            onAuthStateChanged, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            getFirestore, 
+            collection, 
+            doc, 
+            onSnapshot, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            query, 
+            writeBatch 
+        };
     </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -30,16 +46,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-
-        // --- Firebase Initialization (Global Scope) ---
-        const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch } = window.FirebaseSDK;
-        
-        // 環境変数から設定を読み込む（Canvas環境での標準的な方法）
-        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = window.__app_id || 'game-data-manager';
 
         // --- Icons ---
         const Icons = {
@@ -176,6 +182,7 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [viewColumns, setViewColumns] = useState(3);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const [isLoading, setIsLoading] = useState(true);
 
             // Filter & Sort
             const [filterRole, setFilterRole] = useState('ALL');
@@ -190,40 +197,48 @@
             // --- Auth & Sync ---
             useEffect(() => {
                 const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot } = window.FirebaseSDK;
-                const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
-                const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
-                const db = getFirestore(app);
-                const appId = window.__app_id || 'game-data-manager';
+                const firebaseConfig = {  apiKey: "AIzaSyBYBA4hThwBZ8oHpNYccv51OLs_f6o2T-0",  authDomain: "mvlvgg-864fb.firebaseapp.com",  projectId: "mvlvgg-864fb",  storageBucket: "mvlvgg-864fb.firebasestorage.app",  messagingSenderId: "313996909472",  appId: "1:313996909472:web:699f2c644a88a68d5d22c5",  measurementId: "G-LW4TK9Q49L" };
+                
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const db = getFirestore(app);
+                    const appId = window.__app_id || 'game-data-manager';
 
-                const initAuth = async () => {
-                    try {
-                        if (window.__initial_auth_token) {
-                            await signInWithCustomToken(auth, window.__initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
+                    const initAuth = async () => {
+                        try {
+                            if (window.__initial_auth_token) {
+                                await signInWithCustomToken(auth, window.__initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Auth Error:", error);
+                            // Fallback to anonymous
+                            try { await signInAnonymously(auth); } catch (e) { console.error("Anon Auth Failed:", e); }
                         }
-                    } catch (error) {
-                        console.error("Auth Error:", error);
-                        // Fallback to anonymous
-                        try { await signInAnonymously(auth); } catch (e) { console.error("Anon Auth Failed:", e); }
-                    }
-                };
-                initAuth();
+                    };
+                    initAuth();
 
-                onAuthStateChanged(auth, (currentUser) => {
-                    setUser(currentUser);
-                    if (currentUser) {
-                        // パブリックパスを使用する (users/{uid} ではなく public/data を参照)
-                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
-                            setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
-                        });
-                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
-                            setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
-                        });
-                        return () => { unsubChar(); unsubMem(); };
-                    }
-                });
+                    onAuthStateChanged(auth, (currentUser) => {
+                        setUser(currentUser);
+                        if (currentUser) {
+                            const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
+                                setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
+                            });
+                            const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
+                                setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
+                            });
+                            setIsLoading(false);
+                            return () => { unsubChar(); unsubMem(); };
+                        } else {
+                            setIsLoading(false);
+                        }
+                    });
+                } catch (err) {
+                    console.error("Firebase Init Error:", err);
+                    setIsLoading(false);
+                }
             }, []);
 
             // --- Handlers ---
@@ -418,7 +433,7 @@
                 setFilterMemTarget('ALL'); setFilterMemParam('ALL');
             };
 
-            if (!user) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
+            if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
 
             return (
                 <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
