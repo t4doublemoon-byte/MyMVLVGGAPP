@@ -207,10 +207,11 @@
                 onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
                     if (currentUser) {
-                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'characters'), (snap) => {
+                        // パブリックパスを使用する (users/{uid} ではなく public/data を参照)
+                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
                             setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
-                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'memories'), (snap) => {
+                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
                             setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
                         return () => { unsubChar(); unsubMem(); };
@@ -285,10 +286,11 @@
                 const { firebaseId, ...cleanData } = data;
                 const now = Date.now();
                 
+                // パブリックパスを使用する
                 if (firebaseId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, firebaseId), { ...cleanData, updatedAt: now });
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, colName), { ...cleanData, createdAt: now, updatedAt: now });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', colName), { ...cleanData, createdAt: now, updatedAt: now });
                 }
                 setEditingChar(null);
                 setEditingMem(null);
@@ -300,7 +302,8 @@
                 const db = getFirestore();
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, id));
+                // パブリックパスを使用する
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
             };
@@ -313,7 +316,7 @@
                 
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '味方全体' || t === '味方単体' || t === '自身') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
@@ -366,6 +369,9 @@
                 skills: [
                     { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
                     { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
+                    { name: 'スキル3', category: CATEGORY_ACTIVE, elements: ['補助'], effects: [] },
+                    { name: 'スキル4', category: CATEGORY_PASSIVE, elements: ['補助'], effects: [] },
+                    { name: 'スキル5', category: CATEGORY_PASSIVE, elements: ['妨害'], effects: [] },
                 ]
             });
 
@@ -632,13 +638,13 @@
                                                 <div className="mt-auto space-y-2">
                                                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
                                                         {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i}>
-                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
-                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-                                                                    <div className="min-w-0 flex-grow">
-                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
+                                                            <div key={i} className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                                                <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                                                <div className="min-w-0 flex-grow">
+                                                                    <div className="flex justify-between items-center mb-0.5">
+                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect {i + 1}</span>
                                                                     </div>
+                                                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
