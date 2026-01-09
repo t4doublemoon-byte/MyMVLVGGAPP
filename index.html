@@ -108,7 +108,7 @@
         const SKILL_EFFECTS = [
             '攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
             '会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
-            'シールド', '炎上', '毒', '凍結', '速攻', '回避', 'カバー'
+            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散','回避', 'カバー'
         ];
 
         const CATEGORY_EXTRA = 'エクストラ';
@@ -313,7 +313,7 @@
                 
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体') return true;
+                        if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
@@ -334,7 +334,7 @@
                     if (targets.length === 0) return false;
                     
                     return targets.some(t => {
-                        if (t === '味方全体') return true;
+                        if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
@@ -489,7 +489,10 @@
                                 </>
                             )}
                             
-                            {(filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL' || filterMemTarget !== 'ALL' || filterMemParam !== 'ALL') && <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>}
+                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
+                              (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
+                              <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
+                            }
                             
                             <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
                                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
@@ -579,8 +582,18 @@
                                                                         {skill.category}
                                                                     </span>
                                                                 </div>
+                                                                <div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
+                                                                    {(skill.elements || []).map(elName => {
+                                                                        const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
+                                                                        return elInfo ? (
+                                                                            <span key={elName} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border ${elInfo.color}`}>
+                                                                                {elInfo.icon} {elName}
+                                                                            </span>
+                                                                        ) : null;
+                                                                    })}
+                                                                </div>
                                                                 {(skill.effects || []).length > 0 && (
-                                                                    <div className="mt-2 flex flex-wrap gap-1 pl-8">
+                                                                    <div className="mt-1 flex flex-wrap gap-1 pl-8">
                                                                         {skill.effects.map(eff => <span key={eff} className="text-[8px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500">{eff}</span>)}
                                                                     </div>
                                                                 )}
@@ -619,13 +632,13 @@
                                                 <div className="mt-auto space-y-2">
                                                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
                                                         {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i} className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                                                <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-                                                                <div className="min-w-0 flex-grow">
-                                                                    <div className="flex justify-between items-center mb-0.5">
-                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect {i + 1}</span>
+                                                            <div key={i}>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
+                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                                                    <div className="min-w-0 flex-grow">
+                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                     </div>
-                                                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -847,52 +860,50 @@
                                                             <button onClick={() => setEditingMem({...editingMem, [k]: null})} className="text-red-500 p-1 hover:bg-red-50 rounded"><Icons.Trash2 size={12}/></button>
                                                         ))}
                                                     </div>
-                                                    {eff && <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>}
+                                                    <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
                                                 </div>
                                                 
-                                                {eff && (
-                                                    isTextMode ? (
-                                                        <textarea 
-                                                            className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
-                                                            rows="3"
-                                                            value={editingMem[k]} 
-                                                            onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
-                                                            placeholder="効果内容を自由に入力..."
-                                                        />
-                                                    ) : (
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">対象</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
-                                                                    <option value="味方全体">味方全体</option>
-                                                                    <option value="敵全体">敵全体</option>
-                                                                    <optgroup label="登録済みキャラ">
-                                                                        {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                                                    </optgroup>
-                                                                    <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                                                    <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
-                                                                    <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
-                                                                    <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
-                                                                    {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-                                                                <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">増減</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
-                                                                    <option>上昇</option><option>下降</option>
-                                                                </select>
-                                                            </div>
+                                                {isTextMode ? (
+                                                    <textarea 
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
+                                                        rows="3"
+                                                        value={editingMem[k]} 
+                                                        onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
+                                                        placeholder="効果内容を自由に入力..."
+                                                    />
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">対象</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
+                                                                <option value="味方全体">味方全体</option>
+                                                                <option value="敵全体">敵全体</option>
+                                                                <optgroup label="登録済みキャラ">
+                                                                    {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
+                                                                </optgroup>
+                                                                <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                                                <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
+                                                                <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
+                                                                <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
+                                                            </select>
                                                         </div>
-                                                    )
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
+                                                                {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
+                                                            <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">増減</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
+                                                                <option>上昇</option><option>下降</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
                                                 )}
                                             </div>
                                         );
@@ -997,7 +1008,6 @@
                             </div>
                         </div>
                     )}
-
                 </div>
             );
         };
