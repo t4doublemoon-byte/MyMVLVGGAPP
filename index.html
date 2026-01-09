@@ -99,10 +99,10 @@
         ];
 
         const SKILL_ELEMENTS = [
-            { name: '攻撃', icon: <Icons.Sword size={10}/> },
-            { name: '補助', icon: <Icons.Shield size={10}/> },
-            { name: '回復', icon: <Icons.Heart size={10}/> },
-            { name: '妨害', icon: <Icons.Zap size={10}/> }
+            { name: '攻撃', icon: <Icons.Sword size={10}/>, color: 'bg-red-100 text-red-700 border-red-200' },
+            { name: '補助', icon: <Icons.Shield size={10}/>, color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { name: '回復', icon: <Icons.Heart size={10}/>, color: 'bg-green-100 text-green-700 border-green-200' },
+            { name: '妨害', icon: <Icons.Zap size={10}/>, color: 'bg-purple-100 text-purple-700 border-purple-200' }
         ];
 
         const SKILL_EFFECTS = [
@@ -137,6 +137,16 @@
             if (typeof eff === 'string') return eff; // Return as is if string
             if (!eff || (!eff.target && !eff.param)) return "---";
             return `${eff.target}の${eff.param}を${eff.value}${eff.direction}`;
+        };
+
+        // スキルカテゴリーごとの色設定
+        const getSkillCategoryColor = (category) => {
+            switch (category) {
+                case CATEGORY_EXTRA: return 'bg-yellow-500 text-white border-yellow-600';
+                case CATEGORY_ACTIVE: return 'bg-red-500 text-white border-red-600';
+                case CATEGORY_PASSIVE: return 'bg-blue-500 text-white border-blue-600';
+                default: return 'bg-slate-200 text-slate-500 border-slate-300';
+            }
         };
 
         const App = () => {
@@ -560,9 +570,14 @@
                                                         <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
                                                         {(char.skills || []).map((skill, idx) => (
                                                             <div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] bg-slate-200 text-slate-500`}>{idx + 1}</div>
-                                                                    <span className="text-xs font-black italic text-slate-800">{skill.name || '---'}</span>
+                                                                <div className="flex justify-between items-center gap-3 mb-2">
+                                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] shrink-0 ${idx === 0 ? 'bg-yellow-400 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-400'}`}>{idx === 0 ? 'EX' : idx + 1}</div>
+                                                                        <span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
+                                                                    </div>
+                                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded border shrink-0 shadow-sm ${getSkillCategoryColor(skill.category)}`}>
+                                                                        {skill.category}
+                                                                    </span>
                                                                 </div>
                                                                 {(skill.effects || []).length > 0 && (
                                                                     <div className="mt-2 flex flex-wrap gap-1 pl-8">
