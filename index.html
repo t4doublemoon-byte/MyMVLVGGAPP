@@ -22,6 +22,7 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -303,7 +304,7 @@
                 return characters.filter(char => {
                     return targets.some(t => {
                         if (t === '味方全体') return true;
-                        if (t === '敵全体') return false; 
+                        if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
                             t === char.attribute ||
@@ -324,7 +325,7 @@
                     
                     return targets.some(t => {
                         if (t === '味方全体') return true;
-                        if (t === '敵全体') return false; 
+                        if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
                             t === char.attribute ||
@@ -355,11 +356,20 @@
                 skills: [
                     { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
                     { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
-                    { name: 'スキル3', category: CATEGORY_ACTIVE, elements: ['補助'], effects: [] },
-                    { name: 'スキル4', category: CATEGORY_PASSIVE, elements: ['補助'], effects: [] },
-                    { name: 'スキル5', category: CATEGORY_PASSIVE, elements: ['妨害'], effects: [] },
                 ]
             });
+
+            const addSkill = () => {
+                if (editingChar.skills.length >= 5) return;
+                const newSkills = [...editingChar.skills, { name: '', category: CATEGORY_ACTIVE, elements: [], effects: [] }];
+                setEditingChar({ ...editingChar, skills: newSkills });
+            };
+
+            const removeSkill = (index) => {
+                if (editingChar.skills.length <= 2) return;
+                const newSkills = editingChar.skills.filter((_, i) => i !== index);
+                setEditingChar({ ...editingChar, skills: newSkills });
+            };
 
             const initNewMemory = () => ({
                 uuid: crypto.randomUUID(), name: '新規メモリー', imageUrl: '', mazeSkill: '',
@@ -551,7 +561,7 @@
                                                         {(char.skills || []).map((skill, idx) => (
                                                             <div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] ${idx === 0 ? 'bg-yellow-400 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-400'}`}>{idx === 0 ? 'EX' : idx + 1}</div>
+                                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] bg-slate-200 text-slate-500`}>{idx + 1}</div>
                                                                     <span className="text-xs font-black italic text-slate-800">{skill.name || '---'}</span>
                                                                 </div>
                                                                 {(skill.effects || []).length > 0 && (
@@ -585,7 +595,10 @@
                                                         <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
                                                         <h3 className="text-lg font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight">{mem.name || "UNNAMED"}</h3>
                                                     </div>
-                                                    <button onClick={() => setEditingMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                                    <div className="flex gap-2">
+                                                       <button onClick={() => setLookupMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
+                                                       <button onClick={() => setEditingMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                                    </div>
                                                 </div>
 
                                                 <div className="mt-auto space-y-2">
@@ -595,7 +608,7 @@
                                                                 <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
                                                                 <div className="min-w-0 flex-grow">
                                                                     <div className="flex justify-between items-center mb-0.5">
-                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect 0{i + 1}</span>
+                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect {i + 1}</span>
                                                                     </div>
                                                                     <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                 </div>
@@ -703,54 +716,55 @@
 
                                         {/* Skills Editor */}
                                         <div className="space-y-4">
-                                            <label className="text-xs font-bold text-slate-500 block border-b border-slate-200 pb-2">スキル構成 (Skill Protocols)</label>
+                                            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                                <label className="text-xs font-bold text-slate-500 block">スキル構成 (Skill Protocols)</label>
+                                                <button onClick={addSkill} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
+                                            </div>
                                             <div className="space-y-4 pr-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                                                {[0,1,2,3,4].map(idx => {
-                                                    const skill = (editingChar.skills || [])[idx] || { name: '', category: '', elements: [], effects: [] };
-                                                    return (
-                                                        <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black ${idx===0 ? 'bg-yellow-400 text-white' : 'bg-slate-200 text-slate-500'}`}>{idx===0?'EX':idx+1}</span>
-                                                                <input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
-                                                                    const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
-                                                                }} />
-                                                                {idx > 0 && (
-                                                                    <select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
-                                                                        const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
-                                                                    }}>
-                                                                        {[CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
-                                                                    </select>
-                                                                )}
-                                                            </div>
-                                                            {/* Elements */}
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {SKILL_ELEMENTS.map(el => (
-                                                                    <button key={el.name} onClick={() => {
-                                                                        const ns = [...editingChar.skills];
-                                                                        const cur = ns[idx].elements || [];
-                                                                        ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
-                                                                        setEditingChar({...editingChar, skills: ns});
-                                                                    }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
-                                                                        {el.icon} {el.name}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                            {/* Effects */}
-                                                            <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
-                                                                {SKILL_EFFECTS.map(eff => (
-                                                                    <button key={eff} onClick={() => {
-                                                                        const ns = [...editingChar.skills];
-                                                                        const cur = ns[idx].effects || [];
-                                                                        ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
-                                                                        setEditingChar({...editingChar, skills: ns});
-                                                                    }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
-                                                                        {eff}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                                {(editingChar.skills || []).map((skill, idx) => (
+                                                    <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
+                                                        {editingChar.skills.length > 2 && (
+                                                            <button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><Icons.Trash2 size={14}/></button>
+                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-200 text-slate-500`}>{idx + 1}</span>
+                                                            <input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
+                                                                const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
+                                                            }} />
+                                                            <select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
+                                                                const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
+                                                            }}>
+                                                                {[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
+                                                            </select>
                                                         </div>
-                                                    )
-                                                })}
+                                                        {/* Elements */}
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {SKILL_ELEMENTS.map(el => (
+                                                                <button key={el.name} onClick={() => {
+                                                                    const ns = [...editingChar.skills];
+                                                                    const cur = ns[idx].elements || [];
+                                                                    ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
+                                                                    setEditingChar({...editingChar, skills: ns});
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                                                                    {el.icon} {el.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        {/* Effects */}
+                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
+                                                            {SKILL_EFFECTS.map(eff => (
+                                                                <button key={eff} onClick={() => {
+                                                                    const ns = [...editingChar.skills];
+                                                                    const cur = ns[idx].effects || [];
+                                                                    ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
+                                                                    setEditingChar({...editingChar, skills: ns});
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
+                                                                    {eff}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
@@ -812,51 +826,58 @@
                                                         >
                                                             {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
                                                         </button>
+                                                        {(!eff && num === 2) ? (
+                                                            <button onClick={() => setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }})} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Icons.Plus size={12}/></button>
+                                                        ) : (num === 2 && (
+                                                            <button onClick={() => setEditingMem({...editingMem, [k]: null})} className="text-red-500 p-1 hover:bg-red-50 rounded"><Icons.Trash2 size={12}/></button>
+                                                        ))}
                                                     </div>
-                                                    <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
+                                                    {eff && <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>}
                                                 </div>
                                                 
-                                                {isTextMode ? (
-                                                    <textarea 
-                                                        className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
-                                                        rows="3"
-                                                        value={editingMem[k]} 
-                                                        onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
-                                                        placeholder="効果内容を自由に入力..."
-                                                    />
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">対象</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
-                                                                <option value="味方全体">味方全体</option>
-                                                                <option value="敵全体">敵全体</option>
-                                                                <optgroup label="登録済みキャラ">
-                                                                    {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                                                </optgroup>
-                                                                <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                                                <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
-                                                                <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
-                                                                <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
-                                                            </select>
+                                                {eff && (
+                                                    isTextMode ? (
+                                                        <textarea 
+                                                            className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
+                                                            rows="3"
+                                                            value={editingMem[k]} 
+                                                            onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
+                                                            placeholder="効果内容を自由に入力..."
+                                                        />
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">対象</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
+                                                                    <option value="味方全体">味方全体</option>
+                                                                    <option value="敵全体">敵全体</option>
+                                                                    <optgroup label="登録済みキャラ">
+                                                                        {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
+                                                                    </optgroup>
+                                                                    <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                                                    <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
+                                                                    <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
+                                                                    <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
+                                                                    {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
+                                                                <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">増減</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
+                                                                    <option>上昇</option><option>下降</option>
+                                                                </select>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
-                                                                {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-                                                            <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">増減</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
-                                                                <option>上昇</option><option>下降</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
+                                                    )
                                                 )}
                                             </div>
                                         );
@@ -961,6 +982,7 @@
                             </div>
                         </div>
                     )}
+
                 </div>
             );
         };
