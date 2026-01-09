@@ -31,6 +31,16 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // --- Firebase Initialization (Global Scope) ---
+        const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch } = window.FirebaseSDK;
+        
+        // 環境変数から設定を読み込む（Canvas環境での標準的な方法）
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = window.__app_id || 'game-data-manager';
+
         // --- Icons ---
         const Icons = {
             Database: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
@@ -108,7 +118,6 @@
         const SKILL_EFFECTS = [
             '攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
             '会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
-            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散','回避', 'カバー'
             'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散', '回避', 'カバー'
         ];
 
@@ -153,11 +162,11 @@
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('characters');
-
+            
             // Data
             const [characters, setCharacters] = useState([]);
             const [memories, setMemories] = useState([]);
-
+            
             // UI
             const [editingChar, setEditingChar] = useState(null);
             const [editingMem, setEditingMem] = useState(null);
@@ -181,10 +190,7 @@
             // --- Auth & Sync ---
             useEffect(() => {
                 const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot } = window.FirebaseSDK;
-                const firebaseConfig = {  apiKey: "AIzaSyBYBA4hThwBZ8oHpNYccv51OLs_f6o2T-0",  authDomain: "mvlvgg-864fb.firebaseapp.com",  projectId: "mvlvgg-864fb",  storageBucket: "mvlvgg-864fb.firebasestorage.app",  messagingSenderId: "313996909472",  appId: "1:313996909472:web:699f2c644a88a68d5d22c5",  measurementId: "G-LW4TK9Q49L"
-
-
-};;
+                const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
                 const db = getFirestore(app);
@@ -208,10 +214,11 @@
                 onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
                     if (currentUser) {
-                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', 'characters'), (snap) => {
+                        // パブリックパスを使用する (users/{uid} ではなく public/data を参照)
+                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
                             setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
-                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', 'memories'), (snap) => {
+                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
                             setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
                         return () => { unsubChar(); unsubMem(); };
@@ -285,11 +292,12 @@
                 const colName = type === 'char' ? 'characters' : 'memories';
                 const { firebaseId, ...cleanData } = data;
                 const now = Date.now();
-
+                
+                // パブリックパスを使用する
                 if (firebaseId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName, firebaseId), { ...cleanData, updatedAt: now });
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName), { ...cleanData, createdAt: now, updatedAt: now });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', colName), { ...cleanData, createdAt: now, updatedAt: now });
                 }
                 setEditingChar(null);
                 setEditingMem(null);
@@ -301,7 +309,8 @@
                 const db = getFirestore();
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName, id));
+                // パブリックパスを使用する
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
             };
@@ -311,10 +320,10 @@
                 if (!mem) return [];
                 const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                 if (targets.length === 0) return [];
-
+                
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '味方全体' || t === '味方単体' || t === '自身') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
@@ -333,7 +342,7 @@
                 return memories.filter(mem => {
                     const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                     if (targets.length === 0) return false;
-
+                    
                     return targets.some(t => {
                         if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
@@ -367,6 +376,9 @@
                 skills: [
                     { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
                     { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
+                    { name: 'スキル3', category: CATEGORY_ACTIVE, elements: ['補助'], effects: [] },
+                    { name: 'スキル4', category: CATEGORY_PASSIVE, elements: ['補助'], effects: [] },
+                    { name: 'スキル5', category: CATEGORY_PASSIVE, elements: ['妨害'], effects: [] },
                 ]
             });
 
@@ -489,12 +501,12 @@
                                     </select>
                                 </>
                             )}
-
+                            
                             {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
                               (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
                               <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
                             }
-
+                            
                             <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
                                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
                                 <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
@@ -528,7 +540,7 @@
                                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
                                                         <p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
                                                         <h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
-
+                                                        
                                                         <div className="flex flex-wrap gap-2 mb-4">
                                                             <div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
                                                             <div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
@@ -544,7 +556,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-
+                                                    
                                                     <div className="flex flex-col items-end gap-3">
                                                         <div className="text-right">
                                                             <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
@@ -568,7 +580,7 @@
                                                         ))}
                                                     </div>
                                                 </div>
-
+                                                
                                                 {isEx && (
                                                     <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
                                                         <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
@@ -617,7 +629,7 @@
                                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
                                                 </div>
                                             )}
-
+                                            
                                             <div className="flex flex-col h-full relative z-10 p-4">
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div className="min-w-0 pr-4">
@@ -726,7 +738,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-
+                                            
                                             {/* Stats */}
                                             <div className="bg-slate-100 p-4 rounded-xl">
                                                 <label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
@@ -834,7 +846,7 @@
 
                                     {[1, 2].map(num => {
                                         const k = `effect${num}`;
-                                        const eff = editingMem[k] || { target: '', param: '', value: '', direction: '上昇' };
+                                        const eff = editingMem[k];
                                         const isTextMode = typeof editingMem[k] === 'string';
 
                                         return (
@@ -844,78 +856,90 @@
                                                         <span className="text-xs font-black text-indigo-500">効果 {num}</span>
                                                         <button 
                                                             onClick={() => {
-                                                                if (isTextMode) {
+                                                                if (!eff && num === 2) {
                                                                     setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
-                                                                } else {
-                                                                    setEditingMem({...editingMem, [k]: formatEffect(eff)});
+                                                                } else if (eff && num === 2) {
+                                                                    setEditingMem({...editingMem, [k]: null});
                                                                 }
                                                             }}
-                                                            className="p-1 rounded hover:bg-slate-200 text-slate-400"
-                                                            title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
+                                                            className={`p-1 rounded hover:bg-slate-200 ${!eff && num === 2 ? 'text-blue-500' : 'text-red-500'}`}
+                                                            title={!eff ? "効果を追加" : "効果を削除"}
                                                         >
-                                                            {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
+                                                            {!eff && num === 2 ? <Icons.Plus size={12}/> : (num === 2 ? <Icons.Trash2 size={12}/> : null)}
                                                         </button>
-                                                        {(!eff && num === 2) ? (
-                                                            <button onClick={() => setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }})} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Icons.Plus size={12}/></button>
-                                                        ) : (num === 2 && (
-                                                            <button onClick={() => setEditingMem({...editingMem, [k]: null})} className="text-red-500 p-1 hover:bg-red-50 rounded"><Icons.Trash2 size={12}/></button>
-                                                        ))}
+                                                        {eff && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    if (isTextMode) {
+                                                                        setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
+                                                                    } else {
+                                                                        setEditingMem({...editingMem, [k]: formatEffect(eff)});
+                                                                    }
+                                                                }}
+                                                                className="p-1 rounded hover:bg-slate-200 text-slate-400"
+                                                                title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
+                                                            >
+                                                                {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
+                                                    {eff && <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>}
                                                 </div>
-
-                                                {isTextMode ? (
-                                                    <textarea 
-                                                        className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
-                                                        rows="3"
-                                                        value={editingMem[k]} 
-                                                        onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
-                                                        placeholder="効果内容を自由に入力..."
-                                                    />
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">対象</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
-                                                                <option value="味方全体">味方全体</option>
-                                                                <option value="敵全体">敵全体</option>
-                                                                <optgroup label="登録済みキャラ">
-                                                                    {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                                                </optgroup>
-                                                                <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                                                <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
-                                                                <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
-                                                                <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
-                                                            </select>
+                                                
+                                                {eff && (
+                                                    isTextMode ? (
+                                                        <textarea 
+                                                            className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
+                                                            rows="3"
+                                                            value={editingMem[k]} 
+                                                            onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
+                                                            placeholder="効果内容を自由に入力..."
+                                                        />
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">対象</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
+                                                                    <option value="味方全体">味方全体</option>
+                                                                    <option value="敵全体">敵全体</option>
+                                                                    <optgroup label="登録済みキャラ">
+                                                                        {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
+                                                                    </optgroup>
+                                                                    <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                                                    <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
+                                                                    <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
+                                                                    <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
+                                                                    {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
+                                                                <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] font-bold text-slate-400 block">増減</label>
+                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
+                                                                    <option>上昇</option><option>下降</option>
+                                                                </select>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
-                                                                {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-                                                            <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-bold text-slate-400 block">増減</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
-                                                                <option>上昇</option><option>下降</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
+                                                    )
                                                 )}
                                             </div>
                                         );
                                     })}
-
+                                    
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
                                         <input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
                                     </div>
                                 </div>
-
+                                
                                 <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
                                     {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
                                     <div className="flex gap-3">
@@ -1009,6 +1033,7 @@
                             </div>
                         </div>
                     )}
+
                 </div>
             );
         };
