@@ -108,6 +108,7 @@
         const SKILL_EFFECTS = [
             '攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
             '会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
+            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散','回避', 'カバー'
             'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散', '回避', 'カバー'
         ];
 
@@ -152,11 +153,11 @@
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('characters');
-            
+
             // Data
             const [characters, setCharacters] = useState([]);
             const [memories, setMemories] = useState([]);
-            
+
             // UI
             const [editingChar, setEditingChar] = useState(null);
             const [editingMem, setEditingMem] = useState(null);
@@ -182,7 +183,7 @@
                 const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot } = window.FirebaseSDK;
                 const firebaseConfig = {  apiKey: "AIzaSyBYBA4hThwBZ8oHpNYccv51OLs_f6o2T-0",  authDomain: "mvlvgg-864fb.firebaseapp.com",  projectId: "mvlvgg-864fb",  storageBucket: "mvlvgg-864fb.firebasestorage.app",  messagingSenderId: "313996909472",  appId: "1:313996909472:web:699f2c644a88a68d5d22c5",  measurementId: "G-LW4TK9Q49L"
 
-  
+
 };;
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
@@ -207,11 +208,10 @@
                 onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
                     if (currentUser) {
-                        // パブリックパスを使用する (users/{uid} ではなく public/data を参照)
-                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
+                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', CADNm39S2pUmz11yJGqSPfUiTNd2, 'characters'), (snap) => {
                             setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
-                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
+                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', CADNm39S2pUmz11yJGqSPfUiTNd2, 'memories'), (snap) => {
                             setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
                         return () => { unsubChar(); unsubMem(); };
@@ -285,12 +285,11 @@
                 const colName = type === 'char' ? 'characters' : 'memories';
                 const { firebaseId, ...cleanData } = data;
                 const now = Date.now();
-                
-                // パブリックパスを使用する
+
                 if (firebaseId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, firebaseId), { ...cleanData, updatedAt: now });
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', colName), { ...cleanData, createdAt: now, updatedAt: now });
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, colName), { ...cleanData, createdAt: now, updatedAt: now });
                 }
                 setEditingChar(null);
                 setEditingMem(null);
@@ -302,8 +301,7 @@
                 const db = getFirestore();
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
-                // パブリックパスを使用する
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, id));
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
             };
@@ -313,10 +311,10 @@
                 if (!mem) return [];
                 const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                 if (targets.length === 0) return [];
-                
+
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体' || t === '味方単体' || t === '自身') return true;
+                        if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
@@ -335,7 +333,7 @@
                 return memories.filter(mem => {
                     const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                     if (targets.length === 0) return false;
-                    
+
                     return targets.some(t => {
                         if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
@@ -369,9 +367,6 @@
                 skills: [
                     { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
                     { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
-                    { name: 'スキル3', category: CATEGORY_ACTIVE, elements: ['補助'], effects: [] },
-                    { name: 'スキル4', category: CATEGORY_PASSIVE, elements: ['補助'], effects: [] },
-                    { name: 'スキル5', category: CATEGORY_PASSIVE, elements: ['妨害'], effects: [] },
                 ]
             });
 
@@ -494,12 +489,12 @@
                                     </select>
                                 </>
                             )}
-                            
+
                             {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
                               (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
                               <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
                             }
-                            
+
                             <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
                                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
                                 <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
@@ -533,7 +528,7 @@
                                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
                                                         <p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
                                                         <h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
-                                                        
+
                                                         <div className="flex flex-wrap gap-2 mb-4">
                                                             <div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
                                                             <div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
@@ -549,7 +544,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div className="flex flex-col items-end gap-3">
                                                         <div className="text-right">
                                                             <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
@@ -573,7 +568,7 @@
                                                         ))}
                                                     </div>
                                                 </div>
-                                                
+
                                                 {isEx && (
                                                     <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
                                                         <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
@@ -622,7 +617,7 @@
                                                     <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
                                                 </div>
                                             )}
-                                            
+
                                             <div className="flex flex-col h-full relative z-10 p-4">
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div className="min-w-0 pr-4">
@@ -638,13 +633,13 @@
                                                 <div className="mt-auto space-y-2">
                                                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
                                                         {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i} className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                                                <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-                                                                <div className="min-w-0 flex-grow">
-                                                                    <div className="flex justify-between items-center mb-0.5">
-                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect {i + 1}</span>
+                                                            <div key={i}>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
+                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                                                    <div className="min-w-0 flex-grow">
+                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                     </div>
-                                                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -731,7 +726,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Stats */}
                                             <div className="bg-slate-100 p-4 rounded-xl">
                                                 <label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
@@ -868,7 +863,7 @@
                                                     </div>
                                                     <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
                                                 </div>
-                                                
+
                                                 {isTextMode ? (
                                                     <textarea 
                                                         className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
@@ -914,13 +909,13 @@
                                             </div>
                                         );
                                     })}
-                                    
+
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
                                         <input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
                                     {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
                                     <div className="flex gap-3">
