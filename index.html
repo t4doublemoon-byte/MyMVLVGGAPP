@@ -287,9 +287,9 @@
                 const now = Date.now();
 
                 if (firebaseId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, firebaseId), { ...cleanData, updatedAt: now });
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, colName), { ...cleanData, createdAt: now, updatedAt: now });
+                    await addDoc(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName), { ...cleanData, createdAt: now, updatedAt: now });
                 }
                 setEditingChar(null);
                 setEditingMem(null);
@@ -301,7 +301,7 @@
                 const db = getFirestore();
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, id));
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
             };
