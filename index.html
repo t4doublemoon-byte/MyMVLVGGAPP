@@ -208,10 +208,10 @@
                 onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
                     if (currentUser) {
-                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', CADNm39S2pUmz11yJGqSPfUiTNd2, 'characters'), (snap) => {
+                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', 'characters'), (snap) => {
                             setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
-                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', CADNm39S2pUmz11yJGqSPfUiTNd2, 'memories'), (snap) => {
+                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', 'CADNm39S2pUmz11yJGqSPfUiTNd2', 'memories'), (snap) => {
                             setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                         });
                         return () => { unsubChar(); unsubMem(); };
