@@ -39,6 +39,7 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -167,6 +168,7 @@
 
         const App = () => {
             const [user, setUser] = useState(null);
+            const [db, setDb] = useState(null);
             const [activeTab, setActiveTab] = useState('characters');
             
             // Data
@@ -202,7 +204,8 @@
                 try {
                     const app = initializeApp(firebaseConfig);
                     const auth = getAuth(app);
-                    const db = getFirestore(app);
+                    const firestore = getFirestore(app);
+                    setDb(firestore);
                     const appId = window.__app_id || 'game-data-manager';
 
                     const initAuth = async () => {
@@ -223,10 +226,10 @@
                     onAuthStateChanged(auth, (currentUser) => {
                         setUser(currentUser);
                         if (currentUser) {
-                            const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
+                            const unsubChar = onSnapshot(collection(firestore, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
                                 setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                             });
-                            const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
+                            const unsubMem = onSnapshot(collection(firestore, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
                                 setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                             });
                             setIsLoading(false);
@@ -301,8 +304,8 @@
             }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
             const handleSave = async (type, data) => {
-                const { getFirestore, collection, doc, addDoc, updateDoc } = window.FirebaseSDK;
-                const db = getFirestore();
+                if (!db) return;
+                const { collection, doc, addDoc, updateDoc } = window.FirebaseSDK;
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
                 const { firebaseId, ...cleanData } = data;
@@ -319,9 +322,8 @@
             };
 
             const handleDelete = async (type, id) => {
-                if (!window.confirm("削除しますか？")) return;
-                const { getFirestore, doc, deleteDoc } = window.FirebaseSDK;
-                const db = getFirestore();
+                if (!db || !window.confirm("削除しますか？")) return;
+                const { doc, deleteDoc } = window.FirebaseSDK;
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
                 // パブリックパスを使用する
@@ -660,13 +662,13 @@
                                                 <div className="mt-auto space-y-2">
                                                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
                                                         {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i}>
-                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
-                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-                                                                    <div className="min-w-0 flex-grow">
-                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
+                                                            <div key={i} className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                                                <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                                                <div className="min-w-0 flex-grow">
+                                                                    <div className="flex justify-between items-center mb-0.5">
+                                                                      <span className="text-[7px] font-black text-slate-400 uppercase italic">Effect 0{i + 1}</span>
                                                                     </div>
+                                                                    <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                                                 </div>
                                                             </div>
                                                         ))}
