@@ -1,1020 +1,1019 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DATA-CORE Game Manager</title>
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-import { writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATA-CORE Game Manager</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, writeBatch };
-</script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-body { font-family: 'Inter', sans-serif; }
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-.memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
-</style>
+        window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, writeBatch };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+    </style>
 </head>
 <body class="bg-slate-50">
-<div id="root"></div>
+    <div id="root"></div>
 
-<script type="text/babel">
-const { useState, useEffect, useMemo } = React;
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-// --- Icons ---
-const Icons = {
-Database: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
-Users: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-Layers: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
-Plus: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14M5 12h14"/></svg>,
-Trash2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
-Edit3: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
-X: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-Search: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
-Filter: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
-SortAsc: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/></svg>,
-FileSpreadsheet: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>,
-Download: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-Share2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
-Grid2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-Grid3: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>,
-ChevronDown: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>,
-ChevronUp: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m18 15-6-6-6 6"/></svg>,
-Save: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
-Image: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>,
-Sword: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/></svg>,
-Shield: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>,
-Heart: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
-Zap: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-Crosshair: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>,
-Check: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
-Infinity: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>,
-Activity: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
-Target: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-Box: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>,
-Palette: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>,
-Flag: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>,
-Tag: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94 .94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>,
-Link2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>,
-CalendarDays: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>,
-AlertCircle: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
-CheckCircle2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
-Type: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></svg>,
-Sliders: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></svg>,
-Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
-PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
-Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-};
+        // --- Icons ---
+        const Icons = {
+            Database: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
+            Users: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Layers: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+            Plus: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14M5 12h14"/></svg>,
+            Trash2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+            Edit3: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+            X: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            Search: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            Filter: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+            SortAsc: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="m3 17 3 3 3-3"/><path d="M6 18V4"/></svg>,
+            FileSpreadsheet: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>,
+            Download: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            Share2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
+            Grid2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+            Grid3: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>,
+            ChevronDown: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>,
+            ChevronUp: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m18 15-6-6-6 6"/></svg>,
+            Save: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            Image: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>,
+            Sword: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/></svg>,
+            Shield: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>,
+            Heart: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+            Zap: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Crosshair: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>,
+            Check: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+            Infinity: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>,
+            Activity: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+            Target: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+            Box: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>,
+            Palette: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>,
+            Flag: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>,
+            Tag: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94 .94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>,
+            Link2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>,
+            CalendarDays: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>,
+            AlertCircle: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            CheckCircle2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
+            Type: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></svg>,
+            Sliders: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></svg>,
+            Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+            PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
+            Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        };
 
-// --- CONSTANTS ---
-const RANK_TO_SCORE = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
-const RANKS = ['S', 'A', 'B', 'C', 'D'];
-const ROLES = ['物理アタッカー', 'ENアタッカー', 'タンク', 'サポート', 'コントロール'];
-const APTITUDES = ['前衛', '後衛', '前衛/後衛'];
-const TYPES = ['物理', 'EN', '敏捷'];
+        // --- CONSTANTS ---
+        const RANK_TO_SCORE = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
+        const RANKS = ['S', 'A', 'B', 'C', 'D'];
+        const ROLES = ['物理アタッカー', 'ENアタッカー', 'タンク', 'サポート', 'コントロール'];
+        const APTITUDES = ['前衛', '後衛', '前衛/後衛'];
+        const TYPES = ['物理', 'EN', '敏捷'];
 
-const DEFAULT_FACTIONS = [
-'シリウスシュガー', 'カラフルブーケ', 'カオスメイデン', 'インスカーレット',
-'ピクシス・マスール', 'トレブルクインテット', 'トリニティ・ジュエル',
-'プレ・クラスーA', '風紀委員', 'STRANGERS I'
-];
+        const DEFAULT_FACTIONS = [
+            'シリウスシュガー', 'カラフルブーケ', 'カオスメイデン', 'インスカーレット',
+            'ピクシス・マスール', 'トレブルクインテット', 'トリニティ・ジュエル',
+            'プレ・クラスーA', '風紀委員', 'STRANGERS I'
+        ];
 
-const ATTRIBUTES = [
-{ name: 'アグレッシブ', color: 'bg-red-500' },
-{ name: 'シャイ', color: 'bg-green-500' },
-{ name: 'キュート', color: 'bg-orange-500' },
-{ name: 'スマート', color: 'bg-blue-500' },
-{ name: 'コミカル', color: 'bg-yellow-400' },
-{ name: 'クレバー', color: 'bg-purple-600' }
-];
+        const ATTRIBUTES = [
+            { name: 'アグレッシブ', color: 'bg-red-500' },
+            { name: 'シャイ', color: 'bg-green-500' },
+            { name: 'キュート', color: 'bg-orange-500' },
+            { name: 'スマート', color: 'bg-blue-500' },
+            { name: 'コミカル', color: 'bg-yellow-400' },
+            { name: 'クレバー', color: 'bg-purple-600' }
+        ];
 
-const SKILL_ELEMENTS = [
-{ name: '攻撃', icon: <Icons.Sword size={10}/>, color: 'bg-red-100 text-red-700 border-red-200' },
-{ name: '補助', icon: <Icons.Shield size={10}/>, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-{ name: '回復', icon: <Icons.Heart size={10}/>, color: 'bg-green-100 text-green-700 border-green-200' },
-{ name: '妨害', icon: <Icons.Zap size={10}/>, color: 'bg-purple-100 text-purple-700 border-purple-200' }
-];
+        const SKILL_ELEMENTS = [
+            { name: '攻撃', icon: <Icons.Sword size={10}/>, color: 'bg-red-100 text-red-700 border-red-200' },
+            { name: '補助', icon: <Icons.Shield size={10}/>, color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { name: '回復', icon: <Icons.Heart size={10}/>, color: 'bg-green-100 text-green-700 border-green-200' },
+            { name: '妨害', icon: <Icons.Zap size={10}/>, color: 'bg-purple-100 text-purple-700 border-purple-200' }
+        ];
 
-const SKILL_EFFECTS = [
-'攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
-'会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
-            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散','回避', 'カバー'
+        const SKILL_EFFECTS = [
+            '攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
+            '会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
             'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散', '回避', 'カバー'
-];
+        ];
 
-const CATEGORY_EXTRA = 'エクストラ';
-const CATEGORY_ACTIVE = 'アクティブ';
-const CATEGORY_PASSIVE = 'パッシブ';
+        const CATEGORY_EXTRA = 'エクストラ';
+        const CATEGORY_ACTIVE = 'アクティブ';
+        const CATEGORY_PASSIVE = 'パッシブ';
 
-const STAT_CONFIG = [
-{ key: 'hp', label: 'HP' },
-{ key: 'atk', label: '攻撃力' },
-{ key: 'def', label: '防御力' },
-{ key: 'crit', label: '会心率' },
-{ key: 'speed', label: '行動速度' }
-];
+        const STAT_CONFIG = [
+            { key: 'hp', label: 'HP' },
+            { key: 'atk', label: '攻撃力' },
+            { key: 'def', label: '防御力' },
+            { key: 'crit', label: '会心率' },
+            { key: 'speed', label: '行動速度' }
+        ];
 
-const MEMORY_PARAMS = ['HP', '攻撃力', '防御力', '会心率', '行動速度', '回復率'];
+        const MEMORY_PARAMS = ['HP', '攻撃力', '防御力', '会心率', '行動速度', '回復率'];
 
-// Helper
-const getGoogleDriveUrl = (input) => {
-if (!input) return "";
-const match = input.match(/[-\w]{25,}/);
-const id = match ? match[0] : input;
-return `https://lh3.googleusercontent.com/u/0/d/${id}=w1000-h1000`;
-};
+        // Helper
+        const getGoogleDriveUrl = (input) => {
+            if (!input) return "";
+            const match = input.match(/[-\w]{25,}/);
+            const id = match ? match[0] : input;
+            return `https://lh3.googleusercontent.com/u/0/d/${id}=w1000-h1000`;
+        };
 
-const formatEffect = (eff) => {
-if (typeof eff === 'string') return eff; // Return as is if string
-if (!eff || (!eff.target && !eff.param)) return "---";
-return `${eff.target}の${eff.param}を${eff.value}${eff.direction}`;
-};
+        const formatEffect = (eff) => {
+            if (typeof eff === 'string') return eff; // Return as is if string
+            if (!eff || (!eff.target && !eff.param)) return "---";
+            return `${eff.target}の${eff.param}を${eff.value}${eff.direction}`;
+        };
 
-// スキルカテゴリーごとの色設定
-const getSkillCategoryColor = (category) => {
-switch (category) {
-case CATEGORY_EXTRA: return 'bg-yellow-500 text-white border-yellow-600';
-case CATEGORY_ACTIVE: return 'bg-red-500 text-white border-red-600';
-case CATEGORY_PASSIVE: return 'bg-blue-500 text-white border-blue-600';
-default: return 'bg-slate-200 text-slate-500 border-slate-300';
-}
-};
+        // スキルカテゴリーごとの色設定
+        const getSkillCategoryColor = (category) => {
+            switch (category) {
+                case CATEGORY_EXTRA: return 'bg-yellow-500 text-white border-yellow-600';
+                case CATEGORY_ACTIVE: return 'bg-red-500 text-white border-red-600';
+                case CATEGORY_PASSIVE: return 'bg-blue-500 text-white border-blue-600';
+                default: return 'bg-slate-200 text-slate-500 border-slate-300';
+            }
+        };
 
-const App = () => {
-const [user, setUser] = useState(null);
-const [activeTab, setActiveTab] = useState('characters');
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('characters');
 
-// Data
-const [characters, setCharacters] = useState([]);
-const [memories, setMemories] = useState([]);
+            // Data
+            const [characters, setCharacters] = useState([]);
+            const [memories, setMemories] = useState([]);
 
-// UI
-const [editingChar, setEditingChar] = useState(null);
-const [editingMem, setEditingMem] = useState(null);
-const [expandedChar, setExpandedChar] = useState(null);
-const [lookupMem, setLookupMem] = useState(null); // Reverse Lookup
-const [lookupChar, setLookupChar] = useState(null); // Character Reverse Lookup
-const [searchQuery, setSearchQuery] = useState('');
-const [viewColumns, setViewColumns] = useState(3);
-const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            // UI
+            const [editingChar, setEditingChar] = useState(null);
+            const [editingMem, setEditingMem] = useState(null);
+            const [expandedChar, setExpandedChar] = useState(null);
+            const [lookupMem, setLookupMem] = useState(null); // Reverse Lookup
+            const [lookupChar, setLookupChar] = useState(null); // Character Reverse Lookup
+            const [searchQuery, setSearchQuery] = useState('');
+            const [viewColumns, setViewColumns] = useState(3);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-// Filter & Sort
-const [filterRole, setFilterRole] = useState('ALL');
-const [filterAttr, setFilterAttr] = useState('ALL');
-const [filterFaction, setFilterFaction] = useState('ALL');
-const [filterSkillEffect, setFilterSkillEffect] = useState('ALL');
-const [filterMemTarget, setFilterMemTarget] = useState('ALL');
-const [filterMemParam, setFilterMemParam] = useState('ALL');
-const [sortBy, setSortBy] = useState('score');
-const [sortOrder, setSortOrder] = useState('desc');
+            // Filter & Sort
+            const [filterRole, setFilterRole] = useState('ALL');
+            const [filterAttr, setFilterAttr] = useState('ALL');
+            const [filterFaction, setFilterFaction] = useState('ALL');
+            const [filterSkillEffect, setFilterSkillEffect] = useState('ALL');
+            const [filterMemTarget, setFilterMemTarget] = useState('ALL');
+            const [filterMemParam, setFilterMemParam] = useState('ALL');
+            const [sortBy, setSortBy] = useState('score');
+            const [sortOrder, setSortOrder] = useState('desc');
 
-// --- Auth & Sync ---
-useEffect(() => {
-const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot } = window.FirebaseSDK;
-const firebaseConfig = {  apiKey: "AIzaSyBYBA4hThwBZ8oHpNYccv51OLs_f6o2T-0",  authDomain: "mvlvgg-864fb.firebaseapp.com",  projectId: "mvlvgg-864fb",  storageBucket: "mvlvgg-864fb.firebasestorage.app",  messagingSenderId: "313996909472",  appId: "1:313996909472:web:699f2c644a88a68d5d22c5",  measurementId: "G-LW4TK9Q49L"
+            // --- Auth & Sync ---
+            useEffect(() => {
+                const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot } = window.FirebaseSDK;
+                const firebaseConfig = {  apiKey: "AIzaSyBYBA4hThwBZ8oHpNYccv51OLs_f6o2T-0",  authDomain: "mvlvgg-864fb.firebaseapp.com",  projectId: "mvlvgg-864fb",  storageBucket: "mvlvgg-864fb.firebasestorage.app",  messagingSenderId: "313996909472",  appId: "1:313996909472:web:699f2c644a88a68d5d22c5",  measurementId: "G-LW4TK9Q49L"
 
 
 };;
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = window.__app_id || 'game-data-manager';
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                const appId = window.__app_id || 'game-data-manager';
 
-const initAuth = async () => {
-try {
-if (window.__initial_auth_token) {
-await signInWithCustomToken(auth, window.__initial_auth_token);
-} else {
-await signInAnonymously(auth);
-}
-} catch (error) {
-console.error("Auth Error:", error);
-// Fallback to anonymous
-try { await signInAnonymously(auth); } catch (e) { console.error("Anon Auth Failed:", e); }
-}
-};
-initAuth();
+                const initAuth = async () => {
+                    try {
+                        if (window.__initial_auth_token) {
+                            await signInWithCustomToken(auth, window.__initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Auth Error:", error);
+                        // Fallback to anonymous
+                        try { await signInAnonymously(auth); } catch (e) { console.error("Anon Auth Failed:", e); }
+                    }
+                };
+                initAuth();
 
-onAuthStateChanged(auth, (currentUser) => {
-setUser(currentUser);
-if (currentUser) {
-const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'characters'), (snap) => {
-setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
-});
-const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'memories'), (snap) => {
-setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
-});
-return () => { unsubChar(); unsubMem(); };
-}
-});
-}, []);
+                onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    if (currentUser) {
+                        const unsubChar = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'characters'), (snap) => {
+                            setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
+                        });
+                        const unsubMem = onSnapshot(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'memories'), (snap) => {
+                            setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
+                        });
+                        return () => { unsubChar(); unsubMem(); };
+                    }
+                });
+            }, []);
 
-// --- Handlers ---
-const calculateTotalScore = (char) => {
-if (!char || !char.stats) return 0;
-return Object.values(char.stats).reduce((acc, rank) => acc + (RANK_TO_SCORE[rank] || 0), 0);
-};
+            // --- Handlers ---
+            const calculateTotalScore = (char) => {
+                if (!char || !char.stats) return 0;
+                return Object.values(char.stats).reduce((acc, rank) => acc + (RANK_TO_SCORE[rank] || 0), 0);
+            };
 
-const existingFactions = useMemo(() => {
-const factions = characters.map(c => c.faction).filter(Boolean);
-return [...new Set([...DEFAULT_FACTIONS, ...factions])];
-}, [characters]);
+            const existingFactions = useMemo(() => {
+                const factions = characters.map(c => c.faction).filter(Boolean);
+                return [...new Set([...DEFAULT_FACTIONS, ...factions])];
+            }, [characters]);
 
-const characterNames = useMemo(() => characters.map(c => c.name).filter(Boolean).sort(), [characters]);
+            const characterNames = useMemo(() => characters.map(c => c.name).filter(Boolean).sort(), [characters]);
 
-const filteredList = useMemo(() => {
-const isChar = activeTab === 'characters';
-let list = isChar ? [...characters] : [...memories];
+            const filteredList = useMemo(() => {
+                const isChar = activeTab === 'characters';
+                let list = isChar ? [...characters] : [...memories];
 
-if (searchQuery) {
-const q = searchQuery.toLowerCase();
-list = list.filter(item => (item.name || '').toLowerCase().includes(q) || (item.nickname || '').toLowerCase().includes(q));
-}
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    list = list.filter(item => (item.name || '').toLowerCase().includes(q) || (item.nickname || '').toLowerCase().includes(q));
+                }
 
-if (isChar) {
-if (filterRole !== 'ALL') list = list.filter(c => c.role === filterRole);
-if (filterAttr !== 'ALL') list = list.filter(c => c.attribute === filterAttr);
-if (filterFaction !== 'ALL') list = list.filter(c => c.faction === filterFaction);
-if (filterSkillEffect !== 'ALL') list = list.filter(c => c.skills?.some(s => s.effects?.includes(filterSkillEffect)));
-} else {
-if (filterMemTarget !== 'ALL') {
-list = list.filter(m => 
-(typeof m.effect1 === 'object' && m.effect1?.target === filterMemTarget) || 
-(typeof m.effect2 === 'object' && m.effect2?.target === filterMemTarget)
-);
-}
-if (filterMemParam !== 'ALL') {
-list = list.filter(m => 
-(typeof m.effect1 === 'object' && m.effect1?.param === filterMemParam) || 
-(typeof m.effect2 === 'object' && m.effect2?.param === filterMemParam)
-);
-}
-}
+                if (isChar) {
+                    if (filterRole !== 'ALL') list = list.filter(c => c.role === filterRole);
+                    if (filterAttr !== 'ALL') list = list.filter(c => c.attribute === filterAttr);
+                    if (filterFaction !== 'ALL') list = list.filter(c => c.faction === filterFaction);
+                    if (filterSkillEffect !== 'ALL') list = list.filter(c => c.skills?.some(s => s.effects?.includes(filterSkillEffect)));
+                } else {
+                    if (filterMemTarget !== 'ALL') {
+                        list = list.filter(m => 
+                            (typeof m.effect1 === 'object' && m.effect1?.target === filterMemTarget) || 
+                            (typeof m.effect2 === 'object' && m.effect2?.target === filterMemTarget)
+                        );
+                    }
+                    if (filterMemParam !== 'ALL') {
+                        list = list.filter(m => 
+                            (typeof m.effect1 === 'object' && m.effect1?.param === filterMemParam) || 
+                            (typeof m.effect2 === 'object' && m.effect2?.param === filterMemParam)
+                        );
+                    }
+                }
 
-list.sort((a, b) => {
-let valA, valB;
-if (isChar && sortBy === 'score') {
-valA = calculateTotalScore(a); valB = calculateTotalScore(b);
-} else if (sortBy === 'name') {
-valA = a.name || ""; valB = b.name || "";
-} else {
-valA = a.createdAt || 0; valB = b.createdAt || 0;
-}
-if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-return 0;
-});
+                list.sort((a, b) => {
+                    let valA, valB;
+                    if (isChar && sortBy === 'score') {
+                        valA = calculateTotalScore(a); valB = calculateTotalScore(b);
+                    } else if (sortBy === 'name') {
+                        valA = a.name || ""; valB = b.name || "";
+                    } else {
+                        valA = a.createdAt || 0; valB = b.createdAt || 0;
+                    }
+                    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                    return 0;
+                });
 
-return list;
-}, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
+                return list;
+            }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
-const handleSave = async (type, data) => {
-const { getFirestore, collection, doc, addDoc, updateDoc } = window.FirebaseSDK;
-const db = getFirestore();
-const appId = window.__app_id || 'game-data-manager';
-const colName = type === 'char' ? 'characters' : 'memories';
-const { firebaseId, ...cleanData } = data;
-const now = Date.now();
+            const handleSave = async (type, data) => {
+                const { getFirestore, collection, doc, addDoc, updateDoc } = window.FirebaseSDK;
+                const db = getFirestore();
+                const appId = window.__app_id || 'game-data-manager';
+                const colName = type === 'char' ? 'characters' : 'memories';
+                const { firebaseId, ...cleanData } = data;
+                const now = Date.now();
 
-if (firebaseId) {
-await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, firebaseId), { ...cleanData, updatedAt: now });
-} else {
-await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, colName), { ...cleanData, createdAt: now, updatedAt: now });
-}
-setEditingChar(null);
-setEditingMem(null);
-};
+                if (firebaseId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, firebaseId), { ...cleanData, updatedAt: now });
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, colName), { ...cleanData, createdAt: now, updatedAt: now });
+                }
+                setEditingChar(null);
+                setEditingMem(null);
+            };
 
-const handleDelete = async (type, id) => {
-if (!window.confirm("削除しますか？")) return;
-const { getFirestore, doc, deleteDoc } = window.FirebaseSDK;
-const db = getFirestore();
-const appId = window.__app_id || 'game-data-manager';
-const colName = type === 'char' ? 'characters' : 'memories';
-await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, id));
-setEditingChar(null);
-setEditingMem(null);
-};
+            const handleDelete = async (type, id) => {
+                if (!window.confirm("削除しますか？")) return;
+                const { getFirestore, doc, deleteDoc } = window.FirebaseSDK;
+                const db = getFirestore();
+                const appId = window.__app_id || 'game-data-manager';
+                const colName = type === 'char' ? 'characters' : 'memories';
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, colName, id));
+                setEditingChar(null);
+                setEditingMem(null);
+            };
 
-// Reverse Lookup Logic (Memory -> Characters)
-const getAffectedUnits = (mem) => {
-if (!mem) return [];
-const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
-if (targets.length === 0) return [];
+            // Reverse Lookup Logic (Memory -> Characters)
+            const getAffectedUnits = (mem) => {
+                if (!mem) return [];
+                const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
+                if (targets.length === 0) return [];
 
-return characters.filter(char => {
-return targets.some(t => {
-if (t === '味方全体' || t === '味方単体') return true;
-if (t === '敵全体' || t === '敵単体') return false; 
-return (
-t === char.name ||
-t === char.attribute ||
-t === char.type ||
-t === char.role ||
-t === char.aptitude
-);
-});
-});
-};
+                return characters.filter(char => {
+                    return targets.some(t => {
+                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '敵全体' || t === '敵単体') return false; 
+                        return (
+                            t === char.name ||
+                            t === char.attribute ||
+                            t === char.type ||
+                            t === char.role ||
+                            t === char.aptitude
+                        );
+                    });
+                });
+            };
 
-// Reverse Lookup Logic (Character -> Memories)
-const getTargetingMemories = (char) => {
-if (!char) return [];
-return memories.filter(mem => {
-const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
-if (targets.length === 0) return false;
+            // Reverse Lookup Logic (Character -> Memories)
+            const getTargetingMemories = (char) => {
+                if (!char) return [];
+                return memories.filter(mem => {
+                    const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
+                    if (targets.length === 0) return false;
 
-return targets.some(t => {
-if (t === '味方全体' || t === '味方単体') return true;
-if (t === '敵全体' || t === '敵単体') return false; 
-return (
-t === char.name ||
-t === char.attribute ||
-t === char.type ||
-t === char.role ||
-t === char.aptitude
-);
-});
-});
-};
+                    return targets.some(t => {
+                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '敵全体' || t === '敵単体') return false; 
+                        return (
+                            t === char.name ||
+                            t === char.attribute ||
+                            t === char.type ||
+                            t === char.role ||
+                            t === char.aptitude
+                        );
+                    });
+                });
+            };
 
-const toggleFullScreen = () => {
-if (!document.fullscreenElement) {
-document.documentElement.requestFullscreen().catch(e => console.log(e));
-} else {
-if (document.exitFullscreen) {
-document.exitFullscreen();
-}
-}
-};
+            const toggleFullScreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(e => console.log(e));
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            };
 
-const initNewCharacter = () => ({
-uuid: crypto.randomUUID(),
-name: '新規ユニット', nickname: '', faction: DEFAULT_FACTIONS[0],
-attribute: ATTRIBUTES[0].name, type: TYPES[0], role: ROLES[0], aptitude: APTITUDES[0],
-stats: { hp: 'B', atk: 'B', def: 'B', crit: 'B', speed: 'B' },
-imageUrl: '',
-skills: [
-{ name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
-{ name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
-]
-});
+            const initNewCharacter = () => ({
+                uuid: crypto.randomUUID(),
+                name: '新規ユニット', nickname: '', faction: DEFAULT_FACTIONS[0],
+                attribute: ATTRIBUTES[0].name, type: TYPES[0], role: ROLES[0], aptitude: APTITUDES[0],
+                stats: { hp: 'B', atk: 'B', def: 'B', crit: 'B', speed: 'B' },
+                imageUrl: '',
+                skills: [
+                    { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
+                    { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
+                ]
+            });
 
-const addSkill = () => {
-if (editingChar.skills.length >= 5) return;
-const newSkills = [...editingChar.skills, { name: '', category: CATEGORY_ACTIVE, elements: [], effects: [] }];
-setEditingChar({ ...editingChar, skills: newSkills });
-};
+            const addSkill = () => {
+                if (editingChar.skills.length >= 5) return;
+                const newSkills = [...editingChar.skills, { name: '', category: CATEGORY_ACTIVE, elements: [], effects: [] }];
+                setEditingChar({ ...editingChar, skills: newSkills });
+            };
 
-const removeSkill = (index) => {
-if (editingChar.skills.length <= 2) return;
-const newSkills = editingChar.skills.filter((_, i) => i !== index);
-setEditingChar({ ...editingChar, skills: newSkills });
-};
+            const removeSkill = (index) => {
+                if (editingChar.skills.length <= 2) return;
+                const newSkills = editingChar.skills.filter((_, i) => i !== index);
+                setEditingChar({ ...editingChar, skills: newSkills });
+            };
 
-const initNewMemory = () => ({
-uuid: crypto.randomUUID(), name: '新規メモリー', imageUrl: '', mazeSkill: '',
-effect1: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' },
-effect2: null
-});
+            const initNewMemory = () => ({
+                uuid: crypto.randomUUID(), name: '新規メモリー', imageUrl: '', mazeSkill: '',
+                effect1: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' },
+                effect2: null
+            });
 
-const getRankColor = (rank) => {
-if (rank === 'S') return 'text-orange-500 font-black';
-if (rank === 'A') return 'text-red-500 font-bold';
-if (rank === 'B') return 'text-blue-500 font-bold';
-return 'text-slate-400 font-medium';
-};
+            const getRankColor = (rank) => {
+                if (rank === 'S') return 'text-orange-500 font-black';
+                if (rank === 'A') return 'text-red-500 font-bold';
+                if (rank === 'B') return 'text-blue-500 font-bold';
+                return 'text-slate-400 font-medium';
+            };
 
-const getAttributeStyle = (attrName) => {
-const attr = ATTRIBUTES.find(a => a.name === attrName);
-return attr ? `bg-${attr.color} border-${attr.color}` : 'bg-slate-500';
-};
+            const getAttributeStyle = (attrName) => {
+                const attr = ATTRIBUTES.find(a => a.name === attrName);
+                return attr ? `bg-${attr.color} border-${attr.color}` : 'bg-slate-500';
+            };
 
-const resetFilters = () => {
-setFilterRole('ALL'); setFilterAttr('ALL'); setFilterFaction('ALL');
-setFilterSkillEffect('ALL'); setSearchQuery('');
-setFilterMemTarget('ALL'); setFilterMemParam('ALL');
-};
+            const resetFilters = () => {
+                setFilterRole('ALL'); setFilterAttr('ALL'); setFilterFaction('ALL');
+                setFilterSkillEffect('ALL'); setSearchQuery('');
+                setFilterMemTarget('ALL'); setFilterMemParam('ALL');
+            };
 
-if (!user) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
+            if (!user) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
 
-return (
-<div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
-{/* Sidebar */}
-<aside className={`${isSidebarOpen ? 'w-64 p-6' : 'w-0 p-0 border-0'} bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-sm transition-all duration-300 overflow-hidden whitespace-nowrap relative`}>
-<div className="flex items-center justify-between mb-6">
-<div className="flex items-center gap-3 text-slate-800">
-<div className="p-2 bg-blue-600 text-white rounded-lg"><Icons.Database /></div>
-<h1 className="font-black text-xl italic">DATA-CORE</h1>
-</div>
-<button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Icons.PanelLeftClose /></button>
-</div>
-<nav className="flex-grow space-y-2">
-<button onClick={() => { setActiveTab('characters'); setEditingChar(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'characters' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
-<div className="flex items-center gap-3"><Icons.Users size={18} /> <span className="text-sm">ユニット名簿</span></div>
-<span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{characters.length}</span>
-</button>
-<button onClick={() => { setActiveTab('memories'); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'memories' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
-<div className="flex items-center gap-3"><Icons.Layers size={18} /> <span className="text-sm">メモリーバンク</span></div>
-<span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{memories.length}</span>
-</button>
-</nav>
-</aside>
+            return (
+                <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
+                    {/* Sidebar */}
+                    <aside className={`${isSidebarOpen ? 'w-64 p-6' : 'w-0 p-0 border-0'} bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-sm transition-all duration-300 overflow-hidden whitespace-nowrap relative`}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3 text-slate-800">
+                                <div className="p-2 bg-blue-600 text-white rounded-lg"><Icons.Database /></div>
+                                <h1 className="font-black text-xl italic">DATA-CORE</h1>
+                            </div>
+                            <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Icons.PanelLeftClose /></button>
+                        </div>
+                        <nav className="flex-grow space-y-2">
+                            <button onClick={() => { setActiveTab('characters'); setEditingChar(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'characters' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-3"><Icons.Users size={18} /> <span className="text-sm">ユニット名簿</span></div>
+                                <span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{characters.length}</span>
+                            </button>
+                            <button onClick={() => { setActiveTab('memories'); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'memories' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-3"><Icons.Layers size={18} /> <span className="text-sm">メモリーバンク</span></div>
+                                <span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{memories.length}</span>
+                            </button>
+                        </nav>
+                    </aside>
 
-{/* Main Content */}
-<main className="flex-grow flex flex-col h-full overflow-hidden">
-{/* Header */}
-<header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 z-10">
-<div className="flex items-center gap-4">
-{!isSidebarOpen && (
-<button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
-<Icons.Menu size={20} />
-</button>
-)}
-<h2 className="text-2xl font-black italic uppercase text-slate-800">{activeTab === 'characters' ? 'Unit Registry' : 'Memory Bank'}</h2>
-<span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>
-</div>
-<div className="flex items-center gap-3">
-<div className="relative">
-<div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={16}/></div>
-<input 
-className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
-placeholder="検索..."
-value={searchQuery}
-onChange={e => setSearchQuery(e.target.value)}
-/>
-</div>
-<div className="flex bg-slate-100 p-1 rounded-lg">
-<button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
-<button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
-</div>
-<button onClick={toggleFullScreen} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-lg" title="全画面表示"><Icons.Maximize size={16}/></button>
-<button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95">
-<Icons.Plus size={16}/> 新規登録
-</button>
-</div>
-</header>
+                    {/* Main Content */}
+                    <main className="flex-grow flex flex-col h-full overflow-hidden">
+                        {/* Header */}
+                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 z-10">
+                            <div className="flex items-center gap-4">
+                                {!isSidebarOpen && (
+                                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
+                                        <Icons.Menu size={20} />
+                                    </button>
+                                )}
+                                <h2 className="text-2xl font-black italic uppercase text-slate-800">{activeTab === 'characters' ? 'Unit Registry' : 'Memory Bank'}</h2>
+                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={16}/></div>
+                                    <input 
+                                        className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        placeholder="検索..."
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex bg-slate-100 p-1 rounded-lg">
+                                    <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
+                                    <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
+                                </div>
+                                <button onClick={toggleFullScreen} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-lg" title="全画面表示"><Icons.Maximize size={16}/></button>
+                                <button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95">
+                                    <Icons.Plus size={16}/> 新規登録
+                                </button>
+                            </div>
+                        </header>
 
-{/* Filters */}
-<div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
-<div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
-{activeTab === 'characters' ? (
-<>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
-</>
-) : (
-<>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
-<option value="ALL">対象: ALL</option>
-<optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
-<optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-<optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
-</select>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
-<option value="ALL">パラメータ: ALL</option>
-{MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-</select>
-</>
-)}
+                        {/* Filters */}
+                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
+                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
+                            {activeTab === 'characters' ? (
+                                <>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
+                                </>
+                            ) : (
+                                <>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
+                                        <option value="ALL">対象: ALL</option>
+                                        <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
+                                        <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                        <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
+                                    </select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
+                                        <option value="ALL">パラメータ: ALL</option>
+                                        {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                </>
+                            )}
 
-{((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
-(activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
-<button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
-}
+                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
+                              (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
+                              <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
+                            }
 
-<div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
-<div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
-<select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-{activeTab === 'characters' && <option value="score">総合スコア</option>}
-<option value="name">名前順</option>
-<option value="date">登録日順</option>
-</select>
-<button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
-</div>
-</div>
+                            <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
+                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
+                                <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                    {activeTab === 'characters' && <option value="score">総合スコア</option>}
+                                    <option value="name">名前順</option>
+                                    <option value="date">登録日順</option>
+                                </select>
+                                <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                            </div>
+                        </div>
 
-{/* List Grid */}
-<div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-50">
-<div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
-{activeTab === 'characters' && filteredList.map(char => {
-const score = calculateTotalScore(char);
-const isEx = expandedChar === char.firebaseId;
-const imgUrl = getGoogleDriveUrl(char.imageUrl);
-const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
-return (
-<div key={char.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all hover:-translate-y-1 overflow-hidden">
-{imgUrl && (
-<div className="absolute inset-0 z-0">
-<img src={imgUrl} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
-<div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
-</div>
-)}
-<div className="flex flex-col h-full relative z-10">
-<div className="p-4 flex justify-between items-start">
-<div className="flex-grow min-w-0 pr-2">
-<span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
-<p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
-<h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
+                        {/* List Grid */}
+                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-50">
+                            <div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
+                                {activeTab === 'characters' && filteredList.map(char => {
+                                    const score = calculateTotalScore(char);
+                                    const isEx = expandedChar === char.firebaseId;
+                                    const imgUrl = getGoogleDriveUrl(char.imageUrl);
+                                    const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
+                                    return (
+                                        <div key={char.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all hover:-translate-y-1 overflow-hidden">
+                                            {imgUrl && (
+                                                <div className="absolute inset-0 z-0">
+                                                    <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
+                                                </div>
+                                            )}
+                                            <div className="flex flex-col h-full relative z-10">
+                                                <div className="p-4 flex justify-between items-start">
+                                                    <div className="flex-grow min-w-0 pr-2">
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
+                                                        <p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
+                                                        <h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
 
-<div className="flex flex-wrap gap-2 mb-4">
-<div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
-<div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
-<Icons.Activity size={10} className="mr-1 text-slate-500"/> {char.type}
-</div>
-<div className="h-6 px-2 flex items-center bg-slate-800 text-white rounded-md text-[9px] font-bold italic tracking-tighter">
-<Icons.Target size={10} className="mr-1 text-blue-400"/> {char.role}
-</div>
-<div className={`h-6 w-8 flex items-center justify-center rounded-md border shadow-sm transition-all ${char.aptitude === '前衛' ? 'border-red-100 text-red-500 bg-red-50' : (char.aptitude === '後衛' ? 'border-blue-100 text-blue-500 bg-blue-50' : 'border-purple-100 text-purple-500 bg-purple-50')}`} title={char.aptitude}>
-{char.aptitude === '前衛' && <Icons.Sword size={12}/>}
-{char.aptitude === '後衛' && <Icons.Crosshair size={12}/>}
-{char.aptitude === '前衛/後衛' && <Icons.Sword size={12}/>}
-</div>
-</div>
-</div>
+                                                        <div className="flex flex-wrap gap-2 mb-4">
+                                                            <div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
+                                                            <div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
+                                                                <Icons.Activity size={10} className="mr-1 text-slate-500"/> {char.type}
+                                                            </div>
+                                                            <div className="h-6 px-2 flex items-center bg-slate-800 text-white rounded-md text-[9px] font-bold italic tracking-tighter">
+                                                                <Icons.Target size={10} className="mr-1 text-blue-400"/> {char.role}
+                                                            </div>
+                                                            <div className={`h-6 w-8 flex items-center justify-center rounded-md border shadow-sm transition-all ${char.aptitude === '前衛' ? 'border-red-100 text-red-500 bg-red-50' : (char.aptitude === '後衛' ? 'border-blue-100 text-blue-500 bg-blue-50' : 'border-purple-100 text-purple-500 bg-purple-50')}`} title={char.aptitude}>
+                                                                {char.aptitude === '前衛' && <Icons.Sword size={12}/>}
+                                                                {char.aptitude === '後衛' && <Icons.Crosshair size={12}/>}
+                                                                {char.aptitude === '前衛/後衛' && <Icons.Sword size={12}/>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-<div className="flex flex-col items-end gap-3">
-<div className="text-right">
-<span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
-<span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
-</div>
-<div className="flex gap-1.5">
-<button onClick={() => setLookupChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
-<button onClick={() => setEditingChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
-<button onClick={() => setExpandedChar(isEx ? null : char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isEx ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isEx ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
-</div>
-</div>
-</div>
+                                                    <div className="flex flex-col items-end gap-3">
+                                                        <div className="text-right">
+                                                            <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
+                                                            <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
+                                                        </div>
+                                                        <div className="flex gap-1.5">
+                                                            <button onClick={() => setLookupChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
+                                                            <button onClick={() => setEditingChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                                            <button onClick={() => setExpandedChar(isEx ? null : char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isEx ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isEx ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-<div className="px-4 pb-4 mt-auto">
-<div className="bg-white/70 backdrop-blur-md rounded-xl p-2 border border-slate-100 flex justify-between shadow-sm">
-{STAT_CONFIG.map(({ key, label }) => (
-<div key={key} className="flex flex-col items-center w-full">
-<span className="text-[8px] font-black text-slate-400 uppercase">{label}</span>
-<span className={`text-sm font-black ${getRankColor(char.stats?.[key])}`}>{char.stats?.[key] || '-'}</span>
-</div>
-))}
-</div>
-</div>
+                                                <div className="px-4 pb-4 mt-auto">
+                                                    <div className="bg-white/70 backdrop-blur-md rounded-xl p-2 border border-slate-100 flex justify-between shadow-sm">
+                                                        {STAT_CONFIG.map(({ key, label }) => (
+                                                            <div key={key} className="flex flex-col items-center w-full">
+                                                                <span className="text-[8px] font-black text-slate-400 uppercase">{label}</span>
+                                                                <span className={`text-sm font-black ${getRankColor(char.stats?.[key])}`}>{char.stats?.[key] || '-'}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
 
-{isEx && (
-<div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
-<h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
-{(char.skills || []).map((skill, idx) => (
-<div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-<div className="flex justify-between items-center gap-3 mb-2">
-<div className="flex items-center gap-3 overflow-hidden">
-<div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] shrink-0 ${idx === 0 ? 'bg-yellow-400 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-400'}`}>{idx === 0 ? 'EX' : idx + 1}</div>
-<span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
-</div>
-<span className={`text-[8px] font-bold px-2 py-0.5 rounded border shrink-0 shadow-sm ${getSkillCategoryColor(skill.category)}`}>
-{skill.category}
-</span>
-</div>
-<div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
-{(skill.elements || []).map(elName => {
-const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
-return elInfo ? (
-<span key={elName} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border ${elInfo.color}`}>
-{elInfo.icon} {elName}
-</span>
-) : null;
-})}
-</div>
-{(skill.effects || []).length > 0 && (
-<div className="mt-1 flex flex-wrap gap-1 pl-8">
-{skill.effects.map(eff => <span key={eff} className="text-[8px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500">{eff}</span>)}
-</div>
-)}
-</div>
-))}
-</div>
-)}
-</div>
-</div>
-);
-})}
+                                                {isEx && (
+                                                    <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
+                                                        <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
+                                                        {(char.skills || []).map((skill, idx) => (
+                                                            <div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                                                                <div className="flex justify-between items-center gap-3 mb-2">
+                                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center font-black text-[9px] shrink-0 ${idx === 0 ? 'bg-yellow-400 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-400'}`}>{idx === 0 ? 'EX' : idx + 1}</div>
+                                                                        <span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
+                                                                    </div>
+                                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded border shrink-0 shadow-sm ${getSkillCategoryColor(skill.category)}`}>
+                                                                        {skill.category}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
+                                                                    {(skill.elements || []).map(elName => {
+                                                                        const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
+                                                                        return elInfo ? (
+                                                                            <span key={elName} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border ${elInfo.color}`}>
+                                                                                {elInfo.icon} {elName}
+                                                                            </span>
+                                                                        ) : null;
+                                                                    })}
+                                                                </div>
+                                                                {(skill.effects || []).length > 0 && (
+                                                                    <div className="mt-1 flex flex-wrap gap-1 pl-8">
+                                                                        {skill.effects.map(eff => <span key={eff} className="text-[8px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500">{eff}</span>)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
 
-{activeTab === 'memories' && filteredList.map(mem => {
-const imgUrl = getGoogleDriveUrl(mem.imageUrl);
-return (
-<div key={mem.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-300 transition-all hover:-translate-y-1 overflow-hidden min-h-[300px] flex flex-col">
-{imgUrl && (
-<div className="absolute inset-0 z-0">
-<img src={imgUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
-<div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
-</div>
-)}
+                                {activeTab === 'memories' && filteredList.map(mem => {
+                                    const imgUrl = getGoogleDriveUrl(mem.imageUrl);
+                                    return (
+                                        <div key={mem.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-300 transition-all hover:-translate-y-1 overflow-hidden min-h-[300px] flex flex-col">
+                                            {imgUrl && (
+                                                <div className="absolute inset-0 z-0">
+                                                    <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
+                                                </div>
+                                            )}
 
-<div className="flex flex-col h-full relative z-10 p-4">
-<div className="flex justify-between items-start mb-3">
-<div className="min-w-0 pr-4">
-<span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
-<h3 className="text-lg font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight">{mem.name || "UNNAMED"}</h3>
-</div>
-<div className="flex gap-2">
-<button onClick={() => setLookupMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
-<button onClick={() => setEditingMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
-</div>
-</div>
+                                            <div className="flex flex-col h-full relative z-10 p-4">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="min-w-0 pr-4">
+                                                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
+                                                        <h3 className="text-lg font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight">{mem.name || "UNNAMED"}</h3>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                       <button onClick={() => setLookupMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
+                                                       <button onClick={() => setEditingMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                                    </div>
+                                                </div>
 
-<div className="mt-auto space-y-2">
-<div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
-{[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-<div key={i}>
-<span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
-<div className="flex gap-2 items-center bg-white/50 rounded p-1">
-<div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-<div className="min-w-0 flex-grow">
-<p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
-</div>
-</div>
-</div>
-))}
-</div>
+                                                <div className="mt-auto space-y-2">
+                                                    <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
+                                                        {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
+                                                            <div key={i}>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
+                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                                                    <div className="min-w-0 flex-grow">
+                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
 
-<div className="bg-slate-900 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-<div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-md"><Icons.Infinity size={12}/></div>
-<div className="min-w-0">
-<p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
-<p className="text-[10px] font-black text-indigo-100 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-);
-})}
-</div>
-</div>
-</main>
+                                                    <div className="bg-slate-900 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-indigo-900/20">
+                                                        <div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-md"><Icons.Infinity size={12}/></div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
+                                                            <p className="text-[10px] font-black text-indigo-100 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </main>
 
-{/* Character Edit Modal */}
-{editingChar && (
-<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-<div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-<h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Edit3 size={20} className="text-blue-600"/> ユニット編集</h2>
-<button onClick={() => setEditingChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-</div>
-<div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-<div className="space-y-6">
-{/* Basic Info */}
-<div className="space-y-4">
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
-<div className="flex gap-2">
-<input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.imageUrl} onChange={e => setEditingChar({...editingChar, imageUrl: e.target.value})} placeholder="Drive File ID" />
-{editingChar.imageUrl && <img src={getGoogleDriveUrl(editingChar.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
-</div>
-</div>
-<div className="grid grid-cols-3 gap-2">
-<div className="col-span-1">
-<label className="text-xs font-bold text-slate-500 block mb-1">二つ名</label>
-<input className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.nickname} onChange={e => setEditingChar({...editingChar, nickname: e.target.value})} />
-</div>
-<div className="col-span-2">
-<label className="text-xs font-bold text-slate-500 block mb-1">ユニット名</label>
-<input className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold" value={editingChar.name} onChange={e => setEditingChar({...editingChar, name: e.target.value})} />
-</div>
-</div>
-<div className="grid grid-cols-2 gap-4">
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">勢力</label>
-<select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.faction} onChange={e => setEditingChar({...editingChar, faction: e.target.value})}>
-{DEFAULT_FACTIONS.map(f => <option key={f}>{f}</option>)}
-</select>
-</div>
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">ロール</label>
-<select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.role} onChange={e => setEditingChar({...editingChar, role: e.target.value})}>
-{ROLES.map(r => <option key={r}>{r}</option>)}
-</select>
-</div>
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">属性</label>
-<select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.attribute} onChange={e => setEditingChar({...editingChar, attribute: e.target.value})}>
-{ATTRIBUTES.map(a => <option key={a.name}>{a.name}</option>)}
-</select>
-</div>
-<div className="grid grid-cols-2 gap-2">
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">タイプ</label>
-<select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.type} onChange={e => setEditingChar({...editingChar, type: e.target.value})}>
-{TYPES.map(t => <option key={t}>{t}</option>)}
-</select>
-</div>
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">適性</label>
-<select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.aptitude} onChange={e => setEditingChar({...editingChar, aptitude: e.target.value})}>
-{APTITUDES.map(a => <option key={a}>{a}</option>)}
-</select>
-</div>
-</div>
-</div>
-</div>
+                    {/* Character Edit Modal */}
+                    {editingChar && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Edit3 size={20} className="text-blue-600"/> ユニット編集</h2>
+                                    <button onClick={() => setEditingChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                </div>
+                                <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div className="space-y-6">
+                                            {/* Basic Info */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
+                                                    <div className="flex gap-2">
+                                                        <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.imageUrl} onChange={e => setEditingChar({...editingChar, imageUrl: e.target.value})} placeholder="Drive File ID" />
+                                                        {editingChar.imageUrl && <img src={getGoogleDriveUrl(editingChar.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="col-span-1">
+                                                        <label className="text-xs font-bold text-slate-500 block mb-1">二つ名</label>
+                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.nickname} onChange={e => setEditingChar({...editingChar, nickname: e.target.value})} />
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ユニット名</label>
+                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold" value={editingChar.name} onChange={e => setEditingChar({...editingChar, name: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-500 block mb-1">勢力</label>
+                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.faction} onChange={e => setEditingChar({...editingChar, faction: e.target.value})}>
+                                                            {DEFAULT_FACTIONS.map(f => <option key={f}>{f}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ロール</label>
+                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.role} onChange={e => setEditingChar({...editingChar, role: e.target.value})}>
+                                                            {ROLES.map(r => <option key={r}>{r}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-500 block mb-1">属性</label>
+                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.attribute} onChange={e => setEditingChar({...editingChar, attribute: e.target.value})}>
+                                                            {ATTRIBUTES.map(a => <option key={a.name}>{a.name}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label className="text-xs font-bold text-slate-500 block mb-1">タイプ</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.type} onChange={e => setEditingChar({...editingChar, type: e.target.value})}>
+                                                                {TYPES.map(t => <option key={t}>{t}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs font-bold text-slate-500 block mb-1">適性</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.aptitude} onChange={e => setEditingChar({...editingChar, aptitude: e.target.value})}>
+                                                                {APTITUDES.map(a => <option key={a}>{a}</option>)}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-{/* Stats */}
-<div className="bg-slate-100 p-4 rounded-xl">
-<label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
-<div className="grid grid-cols-5 gap-2">
-{STAT_CONFIG.map(s => (
-<div key={s.key} className="text-center">
-<span className="text-[10px] font-bold text-slate-400 block mb-1">{s.label}</span>
-<select className="bg-white border border-slate-200 rounded text-sm font-black w-full text-center" value={editingChar.stats[s.key]} onChange={e => setEditingChar({...editingChar, stats: {...editingChar.stats, [s.key]: e.target.value}})}>
-{RANKS.map(r => <option key={r}>{r}</option>)}
-</select>
-</div>
-))}
-</div>
-</div>
-</div>
+                                            {/* Stats */}
+                                            <div className="bg-slate-100 p-4 rounded-xl">
+                                                <label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
+                                                <div className="grid grid-cols-5 gap-2">
+                                                    {STAT_CONFIG.map(s => (
+                                                        <div key={s.key} className="text-center">
+                                                            <span className="text-[10px] font-bold text-slate-400 block mb-1">{s.label}</span>
+                                                            <select className="bg-white border border-slate-200 rounded text-sm font-black w-full text-center" value={editingChar.stats[s.key]} onChange={e => setEditingChar({...editingChar, stats: {...editingChar.stats, [s.key]: e.target.value}})}>
+                                                                {RANKS.map(r => <option key={r}>{r}</option>)}
+                                                            </select>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
 
-{/* Skills Editor */}
-<div className="space-y-4">
-<div className="flex justify-between items-center border-b border-slate-200 pb-2">
-<label className="text-xs font-bold text-slate-500 block">スキル構成 (Skill Protocols)</label>
-<button onClick={addSkill} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
-</div>
-<div className="space-y-4 pr-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-{(editingChar.skills || []).map((skill, idx) => (
-<div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
-{editingChar.skills.length > 2 && (
-<button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><Icons.Trash2 size={14}/></button>
-)}
-<div className="flex items-center gap-2">
-<span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-200 text-slate-500`}>{idx + 1}</span>
-<input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
-const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
-}} />
-<select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
-const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
-}}>
-{[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
-</select>
-</div>
-{/* Elements */}
-<div className="flex flex-wrap gap-1">
-{SKILL_ELEMENTS.map(el => (
-<button key={el.name} onClick={() => {
-const ns = [...editingChar.skills];
-const cur = ns[idx].elements || [];
-ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
-setEditingChar({...editingChar, skills: ns});
-}} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
-{el.icon} {el.name}
-</button>
-))}
-</div>
-{/* Effects */}
-<div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
-{SKILL_EFFECTS.map(eff => (
-<button key={eff} onClick={() => {
-const ns = [...editingChar.skills];
-const cur = ns[idx].effects || [];
-ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
-setEditingChar({...editingChar, skills: ns});
-}} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
-{eff}
-</button>
-))}
-</div>
-</div>
-))}
-</div>
-</div>
-</div>
-</div>
-<div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-{editingChar.firebaseId ? <button onClick={() => handleDelete('char', editingChar.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">このデータを削除</button> : <div/>}
-<div className="flex gap-3">
-<button onClick={() => setEditingChar(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
-<button onClick={() => handleSave('char', editingChar)} className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md">保存する</button>
-</div>
-</div>
-</div>
-</div>
-)}
+                                        {/* Skills Editor */}
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                                <label className="text-xs font-bold text-slate-500 block">スキル構成 (Skill Protocols)</label>
+                                                <button onClick={addSkill} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
+                                            </div>
+                                            <div className="space-y-4 pr-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                                                {(editingChar.skills || []).map((skill, idx) => (
+                                                    <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
+                                                        {editingChar.skills.length > 2 && (
+                                                            <button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><Icons.Trash2 size={14}/></button>
+                                                        )}
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-200 text-slate-500`}>{idx + 1}</span>
+                                                            <input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
+                                                                const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
+                                                            }} />
+                                                            <select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
+                                                                const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
+                                                            }}>
+                                                                {[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        {/* Elements */}
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {SKILL_ELEMENTS.map(el => (
+                                                                <button key={el.name} onClick={() => {
+                                                                    const ns = [...editingChar.skills];
+                                                                    const cur = ns[idx].elements || [];
+                                                                    ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
+                                                                    setEditingChar({...editingChar, skills: ns});
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                                                                    {el.icon} {el.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        {/* Effects */}
+                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
+                                                            {SKILL_EFFECTS.map(eff => (
+                                                                <button key={eff} onClick={() => {
+                                                                    const ns = [...editingChar.skills];
+                                                                    const cur = ns[idx].effects || [];
+                                                                    ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
+                                                                    setEditingChar({...editingChar, skills: ns});
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
+                                                                    {eff}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
+                                    {editingChar.firebaseId ? <button onClick={() => handleDelete('char', editingChar.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">このデータを削除</button> : <div/>}
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setEditingChar(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
+                                        <button onClick={() => handleSave('char', editingChar)} className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md">保存する</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-{/* Memory Edit Modal */}
-{editingMem && (
-<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-<div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-<h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Layers size={20} className="text-indigo-600"/> メモリー編集</h2>
-<button onClick={() => setEditingMem(null)} className="p-2 hover:bg-slate-200 rounded-full"><Icons.X size={20}/></button>
-</div>
-<div className="flex-grow overflow-y-auto p-8 space-y-6">
-<div className="space-y-4">
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
-<div className="flex gap-2">
-<input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingMem.imageUrl} onChange={e => setEditingMem({...editingMem, imageUrl: e.target.value})} placeholder="Drive File ID" />
-{editingMem.imageUrl && <img src={getGoogleDriveUrl(editingMem.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
-</div>
-</div>
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">メモリー名</label>
-<input className="w-full p-2 border border-slate-200 rounded-lg text-lg font-bold" value={editingMem.name} onChange={e => setEditingMem({...editingMem, name: e.target.value})} />
-</div>
-</div>
+                    {/* Memory Edit Modal */}
+                    {editingMem && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Layers size={20} className="text-indigo-600"/> メモリー編集</h2>
+                                    <button onClick={() => setEditingMem(null)} className="p-2 hover:bg-slate-200 rounded-full"><Icons.X size={20}/></button>
+                                </div>
+                                <div className="flex-grow overflow-y-auto p-8 space-y-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
+                                            <div className="flex gap-2">
+                                                <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingMem.imageUrl} onChange={e => setEditingMem({...editingMem, imageUrl: e.target.value})} placeholder="Drive File ID" />
+                                                {editingMem.imageUrl && <img src={getGoogleDriveUrl(editingMem.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 block mb-1">メモリー名</label>
+                                            <input className="w-full p-2 border border-slate-200 rounded-lg text-lg font-bold" value={editingMem.name} onChange={e => setEditingMem({...editingMem, name: e.target.value})} />
+                                        </div>
+                                    </div>
 
-{[1, 2].map(num => {
-const k = `effect${num}`;
-const eff = editingMem[k] || { target: '', param: '', value: '', direction: '上昇' };
-const isTextMode = typeof editingMem[k] === 'string';
+                                    {[1, 2].map(num => {
+                                        const k = `effect${num}`;
+                                        const eff = editingMem[k] || { target: '', param: '', value: '', direction: '上昇' };
+                                        const isTextMode = typeof editingMem[k] === 'string';
 
-return (
-<div key={num} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-<div className="flex justify-between items-center">
-<div className="flex items-center gap-2">
-<span className="text-xs font-black text-indigo-500">効果 {num}</span>
-<button 
-onClick={() => {
-if (isTextMode) {
-setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
-} else {
-setEditingMem({...editingMem, [k]: formatEffect(eff)});
-}
-}}
-className="p-1 rounded hover:bg-slate-200 text-slate-400"
-title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
->
-{isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
-</button>
-{(!eff && num === 2) ? (
-<button onClick={() => setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }})} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Icons.Plus size={12}/></button>
-) : (num === 2 && (
-<button onClick={() => setEditingMem({...editingMem, [k]: null})} className="text-red-500 p-1 hover:bg-red-50 rounded"><Icons.Trash2 size={12}/></button>
-))}
-</div>
-<span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
-</div>
+                                        return (
+                                            <div key={num} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-black text-indigo-500">効果 {num}</span>
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (isTextMode) {
+                                                                    setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
+                                                                } else {
+                                                                    setEditingMem({...editingMem, [k]: formatEffect(eff)});
+                                                                }
+                                                            }}
+                                                            className="p-1 rounded hover:bg-slate-200 text-slate-400"
+                                                            title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
+                                                        >
+                                                            {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
+                                                        </button>
+                                                        {(!eff && num === 2) ? (
+                                                            <button onClick={() => setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }})} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Icons.Plus size={12}/></button>
+                                                        ) : (num === 2 && (
+                                                            <button onClick={() => setEditingMem({...editingMem, [k]: null})} className="text-red-500 p-1 hover:bg-red-50 rounded"><Icons.Trash2 size={12}/></button>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>
+                                                </div>
 
-{isTextMode ? (
-<textarea 
-className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
-rows="3"
-value={editingMem[k]} 
-onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
-placeholder="効果内容を自由に入力..."
-/>
-) : (
-<div className="grid grid-cols-2 gap-3">
-<div>
-<label className="text-[10px] font-bold text-slate-400 block">対象</label>
-<select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
-<option value="味方全体">味方全体</option>
-<option value="敵全体">敵全体</option>
-<optgroup label="登録済みキャラ">
-{characterNames.map(n => <option key={n} value={n}>{n}</option>)}
-</optgroup>
-<optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-<optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
-<optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
-<optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
-</select>
-</div>
-<div>
-<label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-<select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
-{MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-</select>
-</div>
-<div>
-<label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-<input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
-</div>
-<div>
-<label className="text-[10px] font-bold text-slate-400 block">増減</label>
-<select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
-<option>上昇</option><option>下降</option>
-</select>
-</div>
-</div>
-)}
-</div>
-);
-})}
+                                                {isTextMode ? (
+                                                    <textarea 
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
+                                                        rows="3"
+                                                        value={editingMem[k]} 
+                                                        onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
+                                                        placeholder="効果内容を自由に入力..."
+                                                    />
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">対象</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
+                                                                <option value="味方全体">味方全体</option>
+                                                                <option value="敵全体">敵全体</option>
+                                                                <optgroup label="登録済みキャラ">
+                                                                    {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
+                                                                </optgroup>
+                                                                <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                                                <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
+                                                                <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
+                                                                <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
+                                                                {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
+                                                            <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-bold text-slate-400 block">増減</label>
+                                                            <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
+                                                                <option>上昇</option><option>下降</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
 
-<div>
-<label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
-<input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
-</div>
-</div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
+                                        <input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
+                                    </div>
+                                </div>
 
-<div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-{editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
-<div className="flex gap-3">
-<button onClick={() => setEditingMem(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
-<button onClick={() => handleSave('mem', editingMem)} className="px-8 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-md">保存する</button>
-</div>
-</div>
-</div>
-</div>
-)}
+                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
+                                    {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setEditingMem(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
+                                        <button onClick={() => handleSave('mem', editingMem)} className="px-8 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-md">保存する</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-{/* Reverse Lookup Modal */}
-{lookupMem && (
-<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-<div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-<div>
-<span className="text-[10px] font-black text-indigo-500 uppercase">AFFECTED UNITS</span>
-<h3 className="text-xl font-bold text-slate-800">{lookupMem.name} の影響対象</h3>
-</div>
-<button onClick={() => setLookupMem(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-</div>
-<div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-{getAffectedUnits(lookupMem).length > 0 ? (
-getAffectedUnits(lookupMem).map(char => (
-<div key={char.firebaseId} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-{char.imageUrl ? (
-<img src={getGoogleDriveUrl(char.imageUrl)} className="w-10 h-10 rounded-lg object-cover" />
-) : (
-<div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300"><Icons.Users size={16}/></div>
-)}
-<div>
-<span className="text-[9px] font-bold text-slate-400 block">{char.faction}</span>
-<p className="text-sm font-black text-slate-800">{char.name}</p>
-</div>
-</div>
-))
-) : (
-<div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
-該当するユニットが見つかりません。<br/>
-<span className="text-xs font-normal">※「味方全体」等は全員が対象となりますが、ここでは個別の条件一致のみ表示されます。</span>
-</div>
-)}
-</div>
-</div>
-</div>
-</div>
-)}
+                    {/* Reverse Lookup Modal */}
+                    {lookupMem && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <div>
+                                        <span className="text-[10px] font-black text-indigo-500 uppercase">AFFECTED UNITS</span>
+                                        <h3 className="text-xl font-bold text-slate-800">{lookupMem.name} の影響対象</h3>
+                                    </div>
+                                    <button onClick={() => setLookupMem(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                </div>
+                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {getAffectedUnits(lookupMem).length > 0 ? (
+                                            getAffectedUnits(lookupMem).map(char => (
+                                                <div key={char.firebaseId} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                                    {char.imageUrl ? (
+                                                        <img src={getGoogleDriveUrl(char.imageUrl)} className="w-10 h-10 rounded-lg object-cover" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300"><Icons.Users size={16}/></div>
+                                                    )}
+                                                    <div>
+                                                        <span className="text-[9px] font-bold text-slate-400 block">{char.faction}</span>
+                                                        <p className="text-sm font-black text-slate-800">{char.name}</p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
+                                                該当するユニットが見つかりません。<br/>
+                                                <span className="text-xs font-normal">※「味方全体」等は全員が対象となりますが、ここでは個別の条件一致のみ表示されます。</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-{/* Character Reverse Lookup Modal */}
-{lookupChar && (
-<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-<div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-<div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-<div>
-<span className="text-[10px] font-black text-indigo-500 uppercase">TARGETING MEMORIES</span>
-<h3 className="text-xl font-bold text-slate-800">{lookupChar.name} に有効なメモリー</h3>
-</div>
-<button onClick={() => setLookupChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-</div>
-<div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-{getTargetingMemories(lookupChar).length > 0 ? (
-getTargetingMemories(lookupChar).map(mem => (
-<div key={mem.firebaseId} className="flex flex-col gap-2 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-colors">
-<div className="flex items-center gap-3 mb-1">
-{mem.imageUrl ? (
-<img src={getGoogleDriveUrl(mem.imageUrl)} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-) : (
-<div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Layers size={16}/></div>
-)}
-<h4 className="text-sm font-black text-slate-800 truncate">{mem.name}</h4>
-</div>
-<div className="space-y-1">
-{[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-<div key={i} className="text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate">
-{formatEffect(eff)}
-</div>
-))}
-</div>
-</div>
-))
-) : (
-<div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
-有効なメモリーが見つかりません。
-</div>
-)}
-</div>
-</div>
-</div>
-</div>
-)}
-</div>
-);
-};
+                    {/* Character Reverse Lookup Modal */}
+                    {lookupChar && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <div>
+                                        <span className="text-[10px] font-black text-indigo-500 uppercase">TARGETING MEMORIES</span>
+                                        <h3 className="text-xl font-bold text-slate-800">{lookupChar.name} に有効なメモリー</h3>
+                                    </div>
+                                    <button onClick={() => setLookupChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                </div>
+                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {getTargetingMemories(lookupChar).length > 0 ? (
+                                            getTargetingMemories(lookupChar).map(mem => (
+                                                <div key={mem.firebaseId} className="flex flex-col gap-2 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-colors">
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        {mem.imageUrl ? (
+                                                            <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Layers size={16}/></div>
+                                                        )}
+                                                        <h4 className="text-sm font-black text-slate-800 truncate">{mem.name}</h4>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
+                                                            <div key={i} className="text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate">
+                                                                {formatEffect(eff)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
+                                                有効なメモリーが見つかりません。
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
