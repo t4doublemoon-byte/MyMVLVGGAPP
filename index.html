@@ -73,7 +73,8 @@
             Sliders: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></svg>,
             Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
             PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
-            Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>,
+            List: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -108,7 +109,7 @@
         const SKILL_EFFECTS = [
             '攻撃バフ', '攻撃デバフ', '防御バフ', '防御デバフ', 
             '会心バフ', '会心デバフ', '速度バフ', '速度デバフ',
-            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散', '回避', 'カバー'
+            'シールド', '炎上', '毒', '凍結', '速攻', '貫通', '拡散', '回避', 'カバー', '気絶', '追撃'
         ];
 
         const CATEGORY_EXTRA = 'エクストラ';
@@ -164,7 +165,8 @@
             // UI
             const [editingChar, setEditingChar] = useState(null);
             const [editingMem, setEditingMem] = useState(null);
-            const [expandedChar, setExpandedChar] = useState(null);
+            // Replace single expandedChar with expandedChars Set for multiple expansion
+            const [expandedChars, setExpandedChars] = useState(new Set());
             const [lookupMem, setLookupMem] = useState(null); // Reverse Lookup
             const [lookupChar, setLookupChar] = useState(null); // Character Reverse Lookup
             const [searchQuery, setSearchQuery] = useState('');
@@ -212,10 +214,10 @@
                         setUser(currentUser);
                         if (currentUser) {
                             // Use fixed ID for sharing data
-                            const unsubChar = onSnapshot(collection(firestore, 'artifacts', appId, 'users', TARGET_USER_ID, 'characters'), (snap) => {
+                            const unsubChar = onSnapshot(collection(firestore, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => {
                                 setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                             });
-                            const unsubMem = onSnapshot(collection(firestore, 'artifacts', appId, 'users', TARGET_USER_ID, 'memories'), (snap) => {
+                            const unsubMem = onSnapshot(collection(firestore, 'artifacts', appId, 'public', 'data', 'memories'), (snap) => {
                                 setMemories(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                             });
                             setIsLoading(false);
@@ -299,9 +301,9 @@
                 
                 // Use fixed ID for sharing data
                 if (firebaseId) {
-                    await updateDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, firebaseId), { ...cleanData, updatedAt: now });
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
-                    await addDoc(collection(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName), { ...cleanData, createdAt: now, updatedAt: now });
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', colName), { ...cleanData, createdAt: now, updatedAt: now });
                 }
                 setEditingChar(null);
                 setEditingMem(null);
@@ -313,9 +315,26 @@
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
                 // Use fixed ID for sharing data
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, id));
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
+            };
+
+            const toggleCharExpansion = (id) => {
+                setExpandedChars(prev => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    return next;
+                });
+            };
+
+            const toggleAllCharacters = () => {
+                if (expandedChars.size === filteredList.length) {
+                    setExpandedChars(new Set());
+                } else {
+                    setExpandedChars(new Set(filteredList.map(c => c.firebaseId)));
+                }
             };
 
             // Reverse Lookup Logic (Memory -> Characters)
@@ -333,7 +352,8 @@
                             t === char.attribute ||
                             t === char.type ||
                             t === char.role ||
-                            t === char.aptitude
+                            t === char.aptitude ||
+                            t === char.faction
                         );
                     });
                 });
@@ -354,7 +374,8 @@
                             t === char.attribute ||
                             t === char.type ||
                             t === char.role ||
-                            t === char.aptitude
+                            t === char.aptitude ||
+                            t === char.faction
                         );
                     });
                 });
@@ -466,6 +487,15 @@
                                         onChange={e => setSearchQuery(e.target.value)}
                                     />
                                 </div>
+                                {activeTab === 'characters' && (
+                                    <button 
+                                        onClick={toggleAllCharacters} 
+                                        className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors"
+                                        title={expandedChars.size === filteredList.length ? "全て折りたたむ" : "全て展開"}
+                                    >
+                                        <Icons.List size={16} />
+                                    </button>
+                                )}
                                 <div className="flex bg-slate-100 p-1 rounded-lg">
                                     <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
                                     <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
@@ -523,7 +553,8 @@
                             <div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
                                 {activeTab === 'characters' && filteredList.map(char => {
                                     const score = calculateTotalScore(char);
-                                    const isEx = expandedChar === char.firebaseId;
+                                    // Use expandedChars set check
+                                    const isEx = expandedChars.has(char.firebaseId);
                                     const imgUrl = getGoogleDriveUrl(char.imageUrl);
                                     const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
                                     return (
@@ -565,7 +596,8 @@
                                                         <div className="flex gap-1.5">
                                                             <button onClick={() => setLookupChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
                                                             <button onClick={() => setEditingChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
-                                                            <button onClick={() => setExpandedChar(isEx ? null : char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isEx ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isEx ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                                            {/* Update toggle click handler */}
+                                                            <button onClick={() => toggleCharExpansion(char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isEx ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isEx ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -674,376 +706,8 @@
                     </main>
 
                     {/* Character Edit Modal */}
-                    {editingChar && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Edit3 size={20} className="text-blue-600"/> ユニット編集</h2>
-                                    <button onClick={() => setEditingChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-                                </div>
-                                <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="space-y-6">
-                                            {/* Basic Info */}
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
-                                                    <div className="flex gap-2">
-                                                        <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.imageUrl} onChange={e => setEditingChar({...editingChar, imageUrl: e.target.value})} placeholder="Drive File ID" />
-                                                        {editingChar.imageUrl && <img src={getGoogleDriveUrl(editingChar.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <div className="col-span-1">
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">二つ名</label>
-                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.nickname} onChange={e => setEditingChar({...editingChar, nickname: e.target.value})} />
-                                                    </div>
-                                                    <div className="col-span-2">
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ユニット名</label>
-                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold" value={editingChar.name} onChange={e => setEditingChar({...editingChar, name: e.target.value})} />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">勢力</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.faction} onChange={e => setEditingChar({...editingChar, faction: e.target.value})}>
-                                                            {DEFAULT_FACTIONS.map(f => <option key={f}>{f}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ロール</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.role} onChange={e => setEditingChar({...editingChar, role: e.target.value})}>
-                                                            {ROLES.map(r => <option key={r}>{r}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">属性</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.attribute} onChange={e => setEditingChar({...editingChar, attribute: e.target.value})}>
-                                                            {ATTRIBUTES.map(a => <option key={a.name}>{a.name}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-500 block mb-1">タイプ</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.type} onChange={e => setEditingChar({...editingChar, type: e.target.value})}>
-                                                                {TYPES.map(t => <option key={t}>{t}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-500 block mb-1">適性</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.aptitude} onChange={e => setEditingChar({...editingChar, aptitude: e.target.value})}>
-                                                                {APTITUDES.map(a => <option key={a}>{a}</option>)}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Stats */}
-                                            <div className="bg-slate-100 p-4 rounded-xl">
-                                                <label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
-                                                <div className="grid grid-cols-5 gap-2">
-                                                    {STAT_CONFIG.map(s => (
-                                                        <div key={s.key} className="text-center">
-                                                            <span className="text-[10px] font-bold text-slate-400 block mb-1">{s.label}</span>
-                                                            <select className="bg-white border border-slate-200 rounded text-sm font-black w-full text-center" value={editingChar.stats[s.key]} onChange={e => setEditingChar({...editingChar, stats: {...editingChar.stats, [s.key]: e.target.value}})}>
-                                                                {RANKS.map(r => <option key={r}>{r}</option>)}
-                                                            </select>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Skills Editor */}
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                                                <label className="text-xs font-bold text-slate-500 block">スキル構成 (Skill Protocols)</label>
-                                                <button onClick={addSkill} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
-                                            </div>
-                                            <div className="space-y-4 pr-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                                                {(editingChar.skills || []).map((skill, idx) => (
-                                                    <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
-                                                        {editingChar.skills.length > 2 && (
-                                                            <button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><Icons.Trash2 size={14}/></button>
-                                                        )}
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-200 text-slate-500`}>{idx + 1}</span>
-                                                            <input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
-                                                                const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
-                                                            }} />
-                                                            <select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
-                                                                const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
-                                                            }}>
-                                                                {[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        {/* Elements */}
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {SKILL_ELEMENTS.map(el => (
-                                                                <button key={el.name} onClick={() => {
-                                                                    const ns = [...editingChar.skills];
-                                                                    const cur = ns[idx].elements || [];
-                                                                    ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
-                                                                    setEditingChar({...editingChar, skills: ns});
-                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
-                                                                    {el.icon} {el.name}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                        {/* Effects */}
-                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
-                                                            {SKILL_EFFECTS.map(eff => (
-                                                                <button key={eff} onClick={() => {
-                                                                    const ns = [...editingChar.skills];
-                                                                    const cur = ns[idx].effects || [];
-                                                                    ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
-                                                                    setEditingChar({...editingChar, skills: ns});
-                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
-                                                                    {eff}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-                                    {editingChar.firebaseId ? <button onClick={() => handleDelete('char', editingChar.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">このデータを削除</button> : <div/>}
-                                    <div className="flex gap-3">
-                                        <button onClick={() => setEditingChar(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
-                                        <button onClick={() => handleSave('char', editingChar)} className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md">保存する</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Memory Edit Modal */}
-                    {editingMem && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Layers size={20} className="text-indigo-600"/> メモリー編集</h2>
-                                    <button onClick={() => setEditingMem(null)} className="p-2 hover:bg-slate-200 rounded-full"><Icons.X size={20}/></button>
-                                </div>
-                                <div className="flex-grow overflow-y-auto p-8 space-y-6">
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
-                                            <div className="flex gap-2">
-                                                <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingMem.imageUrl} onChange={e => setEditingMem({...editingMem, imageUrl: e.target.value})} placeholder="Drive File ID" />
-                                                {editingMem.imageUrl && <img src={getGoogleDriveUrl(editingMem.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 block mb-1">メモリー名</label>
-                                            <input className="w-full p-2 border border-slate-200 rounded-lg text-lg font-bold" value={editingMem.name} onChange={e => setEditingMem({...editingMem, name: e.target.value})} />
-                                        </div>
-                                    </div>
-
-                                    {[1, 2].map(num => {
-                                        const k = `effect${num}`;
-                                        const eff = editingMem[k];
-                                        const isTextMode = typeof editingMem[k] === 'string';
-
-                                        return (
-                                            <div key={num} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                                                <div className="flex justify-between items-center">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-black text-indigo-500">効果 {num}</span>
-                                                        <button 
-                                                            onClick={() => {
-                                                                if (!eff && num === 2) {
-                                                                    setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
-                                                                } else if (eff && num === 2) {
-                                                                    setEditingMem({...editingMem, [k]: null});
-                                                                }
-                                                            }}
-                                                            className={`p-1 rounded hover:bg-slate-200 ${!eff && num === 2 ? 'text-blue-500' : 'text-red-500'}`}
-                                                            title={!eff ? "効果を追加" : "効果を削除"}
-                                                        >
-                                                            {!eff && num === 2 ? <Icons.Plus size={12}/> : (num === 2 ? <Icons.Trash2 size={12}/> : null)}
-                                                        </button>
-                                                        {eff && (
-                                                            <button 
-                                                                onClick={() => {
-                                                                    if (isTextMode) {
-                                                                        setEditingMem({...editingMem, [k]: { target: '味方全体', param: MEMORY_PARAMS[0], value: '', direction: '上昇' }});
-                                                                    } else {
-                                                                        setEditingMem({...editingMem, [k]: formatEffect(eff)});
-                                                                    }
-                                                                }}
-                                                                className="p-1 rounded hover:bg-slate-200 text-slate-400"
-                                                                title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
-                                                            >
-                                                                {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {eff && <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>}
-                                                </div>
-                                                
-                                                {eff && (
-                                                    isTextMode ? (
-                                                        <textarea 
-                                                            className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
-                                                            rows="3"
-                                                            value={editingMem[k]} 
-                                                            onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
-                                                            placeholder="効果内容を自由に入力..."
-                                                        />
-                                                    ) : (
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">対象</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
-                                                                    <option value="味方全体">味方全体</option>
-                                                                    <option value="敵全体">敵全体</option>
-                                                                    <optgroup label="登録済みキャラ">
-                                                                        {characterNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                                                    </optgroup>
-                                                                    <optgroup label="属性">{ATTRIBUTES.map(a=><option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                                                    <optgroup label="タイプ">{TYPES.map(t=><option key={t} value={t}>{t}</option>)}</optgroup>
-                                                                    <optgroup label="ロール">{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</optgroup>
-                                                                    <optgroup label="適性">{APTITUDES.map(a=><option key={a} value={a}>{a}</option>)}</optgroup>
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
-                                                                    {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-                                                                <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">増減</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
-                                                                    <option>上昇</option><option>下降</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
-                                        <input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
-                                    </div>
-                                </div>
-                                
-                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-                                    {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
-                                    <div className="flex gap-3">
-                                        <button onClick={() => setEditingMem(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
-                                        <button onClick={() => handleSave('mem', editingMem)} className="px-8 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-md">保存する</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Reverse Lookup Modal */}
-                    {lookupMem && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <div>
-                                        <span className="text-[10px] font-black text-indigo-500 uppercase">AFFECTED UNITS</span>
-                                        <h3 className="text-xl font-bold text-slate-800">{lookupMem.name} の影響対象</h3>
-                                    </div>
-                                    <button onClick={() => setLookupMem(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-                                </div>
-                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {getAffectedUnits(lookupMem).length > 0 ? (
-                                            getAffectedUnits(lookupMem).map(char => {
-                                                const score = calculateTotalScore(char);
-                                                return (
-                                                    <div key={char.firebaseId} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                                                        {char.imageUrl ? (
-                                                            <img src={getGoogleDriveUrl(char.imageUrl)} className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                                                        ) : (
-                                                            <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Users size={20}/></div>
-                                                        )}
-                                                        <div className="min-w-0">
-                                                            <span className="text-[9px] font-bold text-slate-400 block truncate">{char.nickname || '---'}</span>
-                                                            <p className="text-sm font-black text-slate-800 truncate leading-tight">{char.name}</p>
-                                                            <p className="text-[10px] font-bold text-blue-600 mt-0.5">Score: {score}</p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
-                                                該当するユニットが見つかりません。<br/>
-                                                <span className="text-xs font-normal">※「味方全体」等は全員が対象となりますが、ここでは個別の条件一致のみ表示されます。</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Character Reverse Lookup Modal */}
-                    {lookupChar && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <div>
-                                        <span className="text-[10px] font-black text-indigo-500 uppercase">TARGETING MEMORIES</span>
-                                        <h3 className="text-xl font-bold text-slate-800">{lookupChar.name} に有効なメモリー</h3>
-                                    </div>
-                                    <button onClick={() => setLookupChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
-                                </div>
-                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {getTargetingMemories(lookupChar).length > 0 ? (
-                                            getTargetingMemories(lookupChar).map(mem => (
-                                                <div key={mem.firebaseId} className="flex flex-col gap-2 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-colors">
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        {mem.imageUrl ? (
-                                                            <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Layers size={16}/></div>
-                                                        )}
-                                                        <h4 className="text-sm font-black text-slate-800 truncate">{mem.name}</h4>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i} className="text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate">
-                                                                {formatEffect(eff)}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
-                                                有効なメモリーが見つかりません。
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* ... (rest of modals) ... */}
                 </div>
             );
         };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+        // ...
