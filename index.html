@@ -23,13 +23,16 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        /* Party Grid Animation */
+        .party-slot-enter { animation: slot-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes slot-pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useCallback } = React;
 
         // --- Icons ---
         const Icons = {
@@ -70,11 +73,12 @@
             CheckCircle2: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
             Type: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></svg>,
             Sliders: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></svg>,
-            Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
-            PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
             Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>,
             List: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
-            FileText: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            FileText: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            UserPlus: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
+            Layout: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>,
+            AlertTriangle: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -126,6 +130,25 @@
 
         const MEMORY_PARAMS = ['HP', '攻撃力', '防御力', '会心率', '行動速度', '回復率'];
 
+        // ステータスのマッピング定義
+        const PARAM_KEY_MAP = {
+            'HP': 'hp',
+            '攻撃力': 'atk',
+            '防御力': 'def',
+            '会心率': 'crit',
+            '行動速度': 'speed',
+            '回復率': 'rec'
+        };
+
+        const STAT_LABELS = {
+            hp: 'HP',
+            atk: 'ATK',
+            def: 'DEF',
+            crit: 'CRIT',
+            speed: 'SPD',
+            rec: 'REC'
+        };
+
         // --- ID Constant for ALL Users ---
         const TARGET_USER_ID = 'CADNm39S2pUmz11yJGqSPfUiTNd2';
 
@@ -153,6 +176,122 @@
             }
         };
 
+        // --- Logic for Party Editor ---
+        const calculatePartyBonuses = (members, characters) => {
+            const activeMembers = members.filter(m => m && m.charId).map(m => {
+                const char = characters.find(c => c.firebaseId === m.charId);
+                return char;
+            }).filter(Boolean);
+
+            // 初期値に rec (回復率) を追加
+            if (activeMembers.length === 0) return { bonuses: [], totalBuffs: { atk: 0, hp: 0, def: 0, crit: 0, speed: 0, rec: 0 }, attrCounts: {} };
+
+            const attrCounts = {};
+            ATTRIBUTES.forEach(a => attrCounts[a.name] = 0);
+            
+            let cleverCount = 0;
+            let comicalCount = 0;
+
+            activeMembers.forEach(char => {
+                if (char.attribute === 'クレバー') {
+                    cleverCount++;
+                } else if (char.attribute === 'コミカル') {
+                    comicalCount++;
+                } else {
+                    attrCounts[char.attribute] = (attrCounts[char.attribute] || 0) + 1;
+                }
+            });
+
+            if (comicalCount > 0) {
+                let maxAttr = null;
+                let maxCount = -1;
+                Object.keys(attrCounts).forEach(attr => {
+                    if (attr !== 'クレバー' && attr !== 'コミカル') {
+                        if (attrCounts[attr] > maxCount) {
+                            maxCount = attrCounts[attr];
+                            maxAttr = attr;
+                        }
+                    }
+                });
+                if (maxAttr) {
+                    attrCounts[maxAttr] += comicalCount;
+                } else {
+                     attrCounts['アグレッシブ'] += comicalCount;
+                }
+            }
+
+            const bonuses = [];
+            let totalBuffs = { atk: 0, hp: 0, def: 0, crit: 0, speed: 0, rec: 0 };
+
+            const counts = Object.values(attrCounts).filter(c => c > 0).sort((a, b) => b - a);
+            const maxCount = counts[0] || 0;
+            const secondCount = counts[1] || 0;
+
+            if (maxCount >= 5) {
+                bonuses.push({ text: '5体同属性ボーナス', effects: '攻撃+25% / HP+25%' });
+                totalBuffs.atk += 25; totalBuffs.hp += 25;
+            } else if (maxCount === 4) {
+                bonuses.push({ text: '4体同属性ボーナス', effects: '攻撃+15% / HP+20%' });
+                totalBuffs.atk += 15; totalBuffs.hp += 20;
+            } else if (maxCount === 3) {
+                if (secondCount >= 2) {
+                    bonuses.push({ text: '3-2属性ボーナス', effects: '攻撃+15% / HP+15%' });
+                    totalBuffs.atk += 15; totalBuffs.hp += 15;
+                } else {
+                    bonuses.push({ text: '3体同属性ボーナス', effects: '攻撃+10% / HP+10%' });
+                    totalBuffs.atk += 10; totalBuffs.hp += 10;
+                }
+            }
+
+            if (cleverCount > 0) {
+                let text = `クレバーボーナス(${cleverCount}体)`;
+                let eff = '';
+                if (cleverCount === 1) { eff = '防御+30%'; totalBuffs.def += 30; }
+                else if (cleverCount === 2) { eff = '攻撃+10% / HP+10%'; totalBuffs.atk += 10; totalBuffs.hp += 10; }
+                else if (cleverCount === 3) { eff = '会心+15%'; totalBuffs.crit += 15; }
+                else if (cleverCount === 4) { eff = '攻撃+15% / HP+15%'; totalBuffs.atk += 15; totalBuffs.hp += 15; }
+                else if (cleverCount >= 5) { eff = '攻撃+15% / HP+25%'; totalBuffs.atk += 15; totalBuffs.hp += 25; }
+                bonuses.push({ text: text, effects: eff });
+            }
+
+            return { bonuses, totalBuffs, attrCounts, cleverCount, comicalCount };
+        };
+
+        const getMemoryImpactScore = (memory, members, characters) => {
+            const activeChars = members.filter(m => m && m.charId).map(m => characters.find(c => c.firebaseId === m.charId)).filter(Boolean);
+            if (activeChars.length === 0) return { score: 0, targets: [] };
+
+            const checkTarget = (targetStr, char) => {
+                if (!targetStr) return false;
+                if (targetStr === '味方全体' || targetStr === '自身') return true; 
+                if (targetStr === '敵全体' || targetStr === '敵単体') return false;
+                return (
+                    targetStr === char.name ||
+                    targetStr === char.attribute ||
+                    targetStr === char.type ||
+                    targetStr === char.role ||
+                    targetStr === char.aptitude ||
+                    targetStr === char.faction
+                );
+            };
+
+            let affectedChars = new Set(); 
+            
+            if (memory.effect1 && memory.effect1.target) {
+                activeChars.forEach(char => {
+                    if (checkTarget(memory.effect1.target, char)) affectedChars.add(char.firebaseId);
+                });
+            }
+            if (memory.effect2 && memory.effect2.target) {
+                activeChars.forEach(char => {
+                    if (checkTarget(memory.effect2.target, char)) affectedChars.add(char.firebaseId);
+                });
+            }
+
+            return { score: affectedChars.size, targets: Array.from(affectedChars) };
+        };
+
+
         const App = () => {
             const [user, setUser] = useState(null);
             const [db, setDb] = useState(null);
@@ -161,6 +300,9 @@
             // Data
             const [characters, setCharacters] = useState([]);
             const [memories, setMemories] = useState([]);
+            // Party Data
+            const [partySlots, setPartySlots] = useState(Array(6).fill(null)); 
+            const [equippedMemories, setEquippedMemories] = useState(Array(6).fill(null)); 
             
             // UI
             const [editingChar, setEditingChar] = useState(null);
@@ -174,6 +316,11 @@
             const [viewColumns, setViewColumns] = useState(3);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isLoading, setIsLoading] = useState(true);
+            
+            // Party Editor UI State
+            const [selectedSlot, setSelectedSlot] = useState(null); 
+            const [selectedMemSlot, setSelectedMemSlot] = useState(null); 
+            const [hoveredMemory, setHoveredMemory] = useState(null); 
 
             // Filter & Sort
             const [filterRole, setFilterRole] = useState('ALL');
@@ -292,6 +439,22 @@
                 return list;
             }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
+            // Party Editor Filtered & Sorted Memories
+            const partySuggestedMemories = useMemo(() => {
+                 const scoredMemories = memories.map(mem => {
+                     const impact = getMemoryImpactScore(mem, partySlots, characters);
+                     return { ...mem, impactScore: impact.score, targets: impact.targets };
+                 });
+
+                 const filtered = scoredMemories.filter(m => m.impactScore > 0);
+                 
+                 filtered.sort((a, b) => b.impactScore - a.impactScore);
+
+                 return filtered;
+            }, [memories, partySlots, characters]);
+
+
+            // --- Actions ---
             const handleSave = async (type, data) => {
                 if (!db) return;
                 const { collection, doc, addDoc, updateDoc } = window.FirebaseSDK;
@@ -300,7 +463,6 @@
                 const { firebaseId, ...cleanData } = data;
                 const now = Date.now();
                 
-                // Use fixed ID for sharing data
                 if (firebaseId) {
                     await updateDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, firebaseId), { ...cleanData, updatedAt: now });
                 } else {
@@ -315,7 +477,6 @@
                 const { doc, deleteDoc } = window.FirebaseSDK;
                 const appId = window.__app_id || 'game-data-manager';
                 const colName = type === 'char' ? 'characters' : 'memories';
-                // Use fixed ID for sharing data
                 await deleteDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, id));
                 setEditingChar(null);
                 setEditingMem(null);
@@ -338,58 +499,35 @@
                 }
             };
 
-            // Reverse Lookup Logic (Memory -> Characters)
             const getAffectedUnits = (mem) => {
                 if (!mem) return [];
                 const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                 if (targets.length === 0) return [];
-                
                 return characters.filter(char => {
                     return targets.some(t => {
                         if (t === '味方全体' || t === '味方単体' || t === '自身') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
-                        return (
-                            t === char.name ||
-                            t === char.attribute ||
-                            t === char.type ||
-                            t === char.role ||
-                            t === char.aptitude ||
-                            t === char.faction
-                        );
+                        return (t === char.name || t === char.attribute || t === char.type || t === char.role || t === char.aptitude || t === char.faction);
                     });
                 });
             };
 
-            // Reverse Lookup Logic (Character -> Memories)
             const getTargetingMemories = (char) => {
                 if (!char) return [];
                 return memories.filter(mem => {
                     const targets = [mem.effect1?.target, mem.effect2?.target].filter(Boolean);
                     if (targets.length === 0) return false;
-                    
                     return targets.some(t => {
                         if (t === '味方全体' || t === '味方単体') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
-                        return (
-                            t === char.name ||
-                            t === char.attribute ||
-                            t === char.type ||
-                            t === char.role ||
-                            t === char.aptitude ||
-                            t === char.faction
-                        );
+                        return (t === char.name || t === char.attribute || t === char.type || t === char.role || t === char.aptitude || t === char.faction);
                     });
                 });
             };
 
             const toggleFullScreen = () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(e => console.log(e));
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                }
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => console.log(e));
+                else if (document.exitFullscreen) document.exitFullscreen();
             };
 
             const initNewCharacter = () => ({
@@ -440,6 +578,87 @@
                 setFilterMemTarget('ALL'); setFilterMemParam('ALL');
             };
 
+            // Party Editor Functions
+            const handleSlotClick = (index) => {
+                // If clicking an occupied slot, remove it
+                if (partySlots[index]) {
+                     const newSlots = [...partySlots];
+                     newSlots[index] = null;
+                     setPartySlots(newSlots);
+                } else {
+                     // Open selection
+                     setSelectedSlot(index);
+                }
+            };
+            
+            const handleCharSelect = (char) => {
+                if (selectedSlot === null) return;
+                // Check if char already in party
+                if (partySlots.some(s => s && s.charId === char.firebaseId)) {
+                    alert("すでに編成されています");
+                    return;
+                }
+                const newSlots = [...partySlots];
+                newSlots[selectedSlot] = { charId: char.firebaseId };
+                setPartySlots(newSlots);
+                setSelectedSlot(null);
+            };
+
+            const handleMemorySlotClick = (index) => {
+                if (equippedMemories[index]) {
+                    const newMems = [...equippedMemories];
+                    newMems[index] = null;
+                    setEquippedMemories(newMems);
+                } else {
+                    setSelectedMemSlot(index);
+                }
+            };
+            
+            const handleMemorySelect = (mem) => {
+                if (selectedMemSlot === null) return;
+                // Check dupes? Assuming dupes allowed for memories or not? Requirement says 6 memories. Let's allow dupes for now or unique? Usually unique per slot.
+                if (equippedMemories.some(m => m && m.memoryId === mem.firebaseId)) {
+                    // alert("すでに装備されています"); // Allow dupes or restrict? Let's restrict for now
+                    // return;
+                }
+                const newMems = [...equippedMemories];
+                newMems[selectedMemSlot] = { memoryId: mem.firebaseId };
+                setEquippedMemories(newMems);
+                setSelectedMemSlot(null);
+            };
+
+            // Calculate Party Stats
+            const partyStats = useMemo(() => calculatePartyBonuses(partySlots, characters), [partySlots, characters]);
+            
+            // Total Buffs (including memories)
+            const totalStats = useMemo(() => {
+                // ベースは属性ボーナス
+                const stats = { ...partyStats.totalBuffs };
+                
+                // メモリー効果の加算
+                equippedMemories.forEach(m => {
+                    if (!m) return;
+                    const mem = memories.find(mm => mm.firebaseId === m.memoryId);
+                    if (!mem) return;
+                    
+                    [mem.effect1, mem.effect2].filter(Boolean).forEach(eff => {
+                        const key = PARAM_KEY_MAP[eff.param];
+                        if (key) {
+                            const val = parseFloat(eff.value);
+                            if (!isNaN(val)) {
+                                if (eff.direction === '下降') {
+                                    stats[key] -= val;
+                                } else {
+                                    stats[key] += val;
+                                }
+                            }
+                        }
+                    });
+                });
+                return stats;
+            }, [partyStats, equippedMemories, memories]);
+
+
             if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
 
             return (
@@ -462,11 +681,14 @@
                                 <div className="flex items-center gap-3"><Icons.Layers size={18} /> <span className="text-sm">メモリーバンク</span></div>
                                 <span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{memories.length}</span>
                             </button>
+                            <button onClick={() => { setActiveTab('party'); setEditingChar(null); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'party' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-3"><Icons.Layout size={18} /> <span className="text-sm">パーティ編成</span></div>
+                            </button>
                         </nav>
                     </aside>
 
                     {/* Main Content */}
-                    <main className="flex-grow flex flex-col h-full overflow-hidden">
+                    <main className="flex-grow flex flex-col h-full overflow-hidden relative">
                         {/* Header */}
                         <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 z-10">
                             <div className="flex items-center gap-4">
@@ -475,19 +697,23 @@
                                         <Icons.Menu size={20} />
                                     </button>
                                 )}
-                                <h2 className="text-2xl font-black italic uppercase text-slate-800">{activeTab === 'characters' ? 'Unit Registry' : 'Memory Bank'}</h2>
-                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>
+                                <h2 className="text-2xl font-black italic uppercase text-slate-800">
+                                    {activeTab === 'characters' ? 'Unit Registry' : activeTab === 'memories' ? 'Memory Bank' : 'Tactical Editor'}
+                                </h2>
+                                {activeTab !== 'party' && <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>}
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={16}/></div>
-                                    <input 
-                                        className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        placeholder="検索..."
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
+                                {activeTab !== 'party' && (
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={16}/></div>
+                                        <input 
+                                            className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            placeholder="検索..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                )}
                                 {activeTab === 'characters' && (
                                     <button 
                                         onClick={toggleAllCharacters} 
@@ -497,60 +723,291 @@
                                         <Icons.List size={16} />
                                     </button>
                                 )}
-                                <div className="flex bg-slate-100 p-1 rounded-lg">
-                                    <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
-                                    <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
-                                </div>
+                                {activeTab !== 'party' && (
+                                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                                        <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
+                                        <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
+                                    </div>
+                                )}
                                 <button onClick={toggleFullScreen} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-lg" title="全画面表示"><Icons.Maximize size={16}/></button>
-                                <button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95">
+                                {activeTab !== 'party' && <button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95">
                                     <Icons.Plus size={16}/> 新規登録
-                                </button>
+                                </button>}
                             </div>
                         </header>
 
-                        {/* Filters */}
-                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
-                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
-                            {activeTab === 'characters' ? (
-                                <>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
-                                </>
-                            ) : (
-                                <>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
-                                        <option value="ALL">対象: ALL</option>
-                                        <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
-                                        <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                        <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
-                                        <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
+                        {/* Filters (Characters/Memories) */}
+                        {activeTab !== 'party' && (
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
+                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
+                                {activeTab === 'characters' ? (
+                                    <>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
+                                    </>
+                                ) : (
+                                    <>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
+                                            <option value="ALL">対象: ALL</option>
+                                            <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
+                                            <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                            <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
+                                            <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
+                                            <optgroup label="登録済みキャラ">{characterNames.map(n => <option key={n} value={n}>{n}</option>)}</optgroup>
+                                        </select>
+                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
+                                            <option value="ALL">パラメータ: ALL</option>
+                                            {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                    </>
+                                )}
+                                
+                                {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
+                                  (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
+                                  <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
+                                }
+                                
+                                <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
+                                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                        {activeTab === 'characters' && <option value="score">総合スコア</option>}
+                                        <option value="name">名前順</option>
+                                        <option value="date">登録日順</option>
                                     </select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
-                                        <option value="ALL">パラメータ: ALL</option>
-                                        {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </>
-                            )}
-                            
-                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
-                              (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
-                              <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
-                            }
-                            
-                            <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
-                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
-                                <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                                    {activeTab === 'characters' && <option value="score">総合スコア</option>}
-                                    <option value="name">名前順</option>
-                                    <option value="date">登録日順</option>
-                                </select>
-                                <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                    <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* List Grid */}
+                        {/* --- Party Editor Tab --- */}
+                        {activeTab === 'party' && (
+                            <div className="flex-grow flex overflow-hidden">
+                                {/* Left Panel (Party Grid & Memories) */}
+                                <div className="flex-grow flex flex-col p-6 overflow-y-auto custom-scrollbar">
+                                    
+                                    {/* Grid Area: 2 Rows (Front/Rear) x 3 Columns */}
+                                    <div className="flex flex-col gap-6 justify-center items-center mb-8">
+                                        
+                                        {/* Front Row (0, 1, 2) - Upper Row */}
+                                        <div className="w-full max-w-3xl">
+                                            <h4 className="text-center text-xs font-bold text-red-400 uppercase tracking-widest mb-3 border-b-2 border-red-100 pb-1">Front Guard (前衛)</h4>
+                                            <div className="flex gap-4 justify-center">
+                                                {[0, 1, 2].map(i => {
+                                                    const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
+                                                    const isWarning = char && (char.aptitude === '後衛');
+                                                    return (
+                                                        <div 
+                                                            key={i} 
+                                                            onClick={() => handleSlotClick(i)}
+                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-red-400 bg-white shadow-lg' : 'border-dashed border-red-200 bg-red-50/50 hover:border-red-300 hover:bg-white'} party-slot-enter`}
+                                                        >
+                                                            {char ? (
+                                                                <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
+                                                                    {char.imageUrl && <img src={getGoogleDriveUrl(char.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />}
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/>
+                                                                    <div className="relative z-10 flex flex-col items-center justify-end h-full pb-3 px-1">
+                                                                        <span className="text-[9px] font-bold text-white/80 uppercase tracking-tighter mb-0.5">{char.role}</span>
+                                                                        <span className="text-xs font-black text-white px-2 py-0.5 bg-red-600/80 rounded shadow-sm truncate max-w-full">{char.name}</span>
+                                                                    </div>
+                                                                    {isWarning && (
+                                                                        <div className="absolute top-2 right-2 text-white bg-red-600 rounded-full p-1 shadow-lg animate-bounce z-20 border-2 border-white" title="適性不一致">
+                                                                            <Icons.AlertTriangle size={16}/>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-red-200 flex flex-col items-center">
+                                                                    <Icons.Plus size={24}/>
+                                                                    <span className="text-[10px] font-bold mt-2">FRONT {i + 1}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Rear Row (3, 4, 5) - Lower Row */}
+                                        <div className="w-full max-w-3xl">
+                                            <h4 className="text-center text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 border-b-2 border-blue-100 pb-1">Rear Guard (後衛)</h4>
+                                            <div className="flex gap-4 justify-center">
+                                                {[3, 4, 5].map(i => {
+                                                    const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
+                                                    const isWarning = char && (char.aptitude === '前衛');
+                                                    return (
+                                                        <div 
+                                                            key={i} 
+                                                            onClick={() => handleSlotClick(i)}
+                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-blue-400 bg-white shadow-lg' : 'border-dashed border-blue-200 bg-blue-50/50 hover:border-blue-300 hover:bg-white'} party-slot-enter`}
+                                                        >
+                                                            {char ? (
+                                                                <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
+                                                                    {char.imageUrl && <img src={getGoogleDriveUrl(char.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />}
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/>
+                                                                    <div className="relative z-10 flex flex-col items-center justify-end h-full pb-3 px-1">
+                                                                        <span className="text-[9px] font-bold text-white/80 uppercase tracking-tighter mb-0.5">{char.role}</span>
+                                                                        <span className="text-xs font-black text-white px-2 py-0.5 bg-blue-600/80 rounded shadow-sm truncate max-w-full">{char.name}</span>
+                                                                    </div>
+                                                                    {isWarning && (
+                                                                        <div className="absolute top-2 right-2 text-white bg-red-600 rounded-full p-1 shadow-lg animate-bounce z-20 border-2 border-white" title="適性不一致">
+                                                                            <Icons.AlertTriangle size={16}/>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-blue-200 flex flex-col items-center">
+                                                                    <Icons.Plus size={24}/>
+                                                                    <span className="text-[10px] font-bold mt-2">REAR {i - 2}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Memory Slots */}
+                                    <div className="mt-8">
+                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2"><Icons.Layers size={14}/> Memory Slots</h4>
+                                        <div className="flex gap-4 overflow-x-auto pb-4">
+                                            {[0,1,2,3,4,5].map(i => {
+                                                const memItem = equippedMemories[i];
+                                                const mem = memItem ? memories.find(m => m.firebaseId === memItem.memoryId) : null;
+                                                return (
+                                                    <div 
+                                                        key={i} 
+                                                        onClick={() => handleMemorySlotClick(i)}
+                                                        className={`w-24 h-32 shrink-0 rounded-lg border-2 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${mem ? 'border-indigo-400 bg-white shadow-md' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-white hover:border-indigo-300'}`}
+                                                    >
+                                                        {mem ? (
+                                                            <>
+                                                                {mem.imageUrl ? <img src={getGoogleDriveUrl(mem.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90" /> : <div className="absolute inset-0 bg-indigo-50 flex items-center justify-center"><Icons.Image className="text-indigo-200"/></div>}
+                                                                <div className="relative z-10 mt-auto w-full bg-black/60 p-1 text-center">
+                                                                    <span className="text-[9px] font-bold text-white block truncate">{mem.name}</span>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <Icons.Plus className="text-slate-300"/>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Suggested Memories List (Inline) */}
+                                    {selectedMemSlot !== null && (
+                                        <div className="mt-4 border-t border-slate-200 pt-4">
+                                            <h4 className="text-xs font-bold text-indigo-600 mb-2">Select Memory (Recommended Order)</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                {partySuggestedMemories.map(mem => (
+                                                    <div 
+                                                        key={mem.firebaseId} 
+                                                        onClick={() => handleMemorySelect(mem)}
+                                                        onMouseEnter={() => setHoveredMemory(mem.firebaseId)}
+                                                        onMouseLeave={() => setHoveredMemory(null)}
+                                                        className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all flex gap-3 ${mem.impactScore === 5 ? 'bg-yellow-50 border-yellow-200' : (mem.impactScore >= 3 ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200')}`}
+                                                    >
+                                                        {mem.imageUrl ? <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-12 h-12 rounded object-cover bg-slate-200" /> : <div className="w-12 h-12 rounded bg-slate-100 flex items-center justify-center text-slate-300"><Icons.Layers size={20}/></div>}
+                                                        <div className="min-w-0 flex-grow">
+                                                            <div className="flex justify-between">
+                                                                <h5 className="text-xs font-bold truncate">{mem.name}</h5>
+                                                                <span className="text-[9px] font-black bg-white px-1.5 py-0.5 rounded border border-slate-100 text-slate-500">Target: {mem.impactScore}</span>
+                                                            </div>
+                                                            <div className="text-[9px] text-slate-500 mt-1 space-y-0.5">
+                                                                {mem.effect1 && <p className="truncate">E1: {formatEffect(mem.effect1)}</p>}
+                                                                {mem.effect2 && <p className="truncate">E2: {formatEffect(mem.effect2)}</p>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+
+                                {/* Right Panel: Summary */}
+                                <div className="w-72 bg-white border-l border-slate-200 p-6 flex flex-col shrink-0 shadow-xl overflow-y-auto">
+                                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b pb-3 mb-4">Party Summary</h3>
+                                    
+                                    {/* Attr Counts */}
+                                    <div className="space-y-4 mb-6">
+                                        <h4 className="text-xs font-bold text-slate-400">Formation</h4>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {Object.entries(partyStats.attrCounts).map(([attr, count]) => {
+                                                if(count === 0 && attr !== 'クレバー' && attr !== 'コミカル') return null;
+                                                const attrInfo = ATTRIBUTES.find(a => a.name === attr);
+                                                return (count > 0 || attr === 'クレバー') ? (
+                                                    <div key={attr} className={`flex flex-col items-center p-2 rounded border ${attrInfo?.color.replace('bg-', 'bg-').replace('text-', 'text-white border-') || 'bg-slate-100'}`}>
+                                                        <span className={`text-[10px] font-black ${attr === 'クレバー' || attr === 'コミカル' ? 'text-slate-800' : 'text-white'}`}>{attr.slice(0,2)}</span>
+                                                        <span className={`text-lg font-black leading-none mt-1 ${attr === 'クレバー' || attr === 'コミカル' ? 'text-slate-800' : 'text-white'}`}>{count}</span>
+                                                    </div>
+                                                ) : null;
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Bonuses */}
+                                    <div className="space-y-3 mb-6">
+                                        <h4 className="text-xs font-bold text-slate-400">Active Bonuses</h4>
+                                        {partyStats.bonuses.length > 0 ? (
+                                            partyStats.bonuses.map((b, i) => (
+                                                <div key={i} className="bg-emerald-50 border border-emerald-100 p-2 rounded-lg">
+                                                    <p className="text-[10px] font-black text-emerald-600 uppercase">{b.text}</p>
+                                                    <p className="text-xs font-bold text-emerald-800">{b.effects}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-[10px] text-slate-400 italic">No active bonuses</p>
+                                        )}
+                                    </div>
+
+                                    {/* Total */}
+                                    <div className="mt-auto bg-slate-900 rounded-xl p-4 text-white">
+                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Total Buffs</h4>
+                                        <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                                            {Object.entries(totalStats).map(([key, val]) => (
+                                                <div key={key}>
+                                                    <span className="text-[9px] text-slate-500 block uppercase">{STAT_LABELS[key] || key}</span>
+                                                    <span className={`text-xl font-black ${val > 0 ? 'text-green-400' : (val < 0 ? 'text-red-400' : 'text-slate-600')}`}>
+                                                        {val > 0 ? '+' : ''}{val}%
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Character Selector Overlay (Simple) */}
+                                {selectedSlot !== null && (
+                                    <div className="absolute inset-0 bg-white/95 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-4 border-b flex justify-between items-center">
+                                            <h3 className="font-bold text-lg">Select Unit</h3>
+                                            <button onClick={() => setSelectedSlot(null)} className="p-2 bg-slate-100 rounded-full"><Icons.X/></button>
+                                        </div>
+                                        <div className="flex-grow overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            {characters.map(char => (
+                                                <div key={char.firebaseId} onClick={() => handleCharSelect(char)} className="flex items-center gap-3 p-3 border rounded-xl hover:bg-blue-50 cursor-pointer shadow-sm bg-white">
+                                                    {char.imageUrl ? <img src={getGoogleDriveUrl(char.imageUrl)} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center"><Icons.Users/></div>}
+                                                    <div className="min-w-0">
+                                                        <p className="text-[9px] text-slate-400 truncate">{char.faction}</p>
+                                                        <p className="text-xs font-bold truncate">{char.name}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {/* --- End Party Editor --- */}
+
+                        {/* List Grid (Existing) */}
+                        {activeTab !== 'party' && (
                         <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-50">
                             <div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
                                 {activeTab === 'characters' && filteredList.map(char => {
@@ -652,7 +1109,7 @@
                                         </div>
                                     );
                                 })}
-
+                                {/* ... memories map ... */}
                                 {activeTab === 'memories' && filteredList.map(mem => {
                                     const imgUrl = getGoogleDriveUrl(mem.imageUrl);
                                     return (
@@ -705,9 +1162,11 @@
                                 })}
                             </div>
                         </div>
+                        )}
                     </main>
 
                     {/* Character Edit Modal */}
+                    {/* ... (Edit Modal is fine) ... */}
                     {editingChar && (
                         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
