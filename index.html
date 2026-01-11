@@ -33,6 +33,8 @@
 
         // --- Icons ---
         const Icons = {
+            Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+            PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
             Database: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
             Users: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
             Layers: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
@@ -71,7 +73,8 @@
             Menu: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
             PanelLeftClose: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>,
             Maximize: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>,
-            List: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+            List: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+            FileText: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -140,13 +143,13 @@
             return `${eff.target}の${eff.param}を${eff.value}${eff.direction}`;
         };
 
-        // スキルカテゴリーごとの色設定（アイコン・文字色）
-        const getSkillStyle = (category) => {
+        // スキルカテゴリーごとの色設定
+        const getSkillCategoryColor = (category) => {
             switch (category) {
-                case CATEGORY_EXTRA: return { label: 'EX', className: 'bg-yellow-500 text-white' };
-                case CATEGORY_ACTIVE: return { label: 'AC', className: 'bg-red-500 text-white' };
-                case CATEGORY_PASSIVE: return { label: 'PS', className: 'bg-blue-500 text-white' };
-                default: return { label: '??', className: 'bg-slate-200 text-slate-500' };
+                case CATEGORY_EXTRA: return { label: 'EX', className: 'bg-yellow-500 text-white border-yellow-600' };
+                case CATEGORY_ACTIVE: return { label: 'AC', className: 'bg-red-500 text-white border-red-600' };
+                case CATEGORY_PASSIVE: return { label: 'PS', className: 'bg-blue-500 text-white border-blue-600' };
+                default: return { label: '??', className: 'bg-slate-200 text-slate-500 border-slate-300' };
             }
         };
 
@@ -166,6 +169,7 @@
             const [expandedChars, setExpandedChars] = useState(new Set());
             const [lookupMem, setLookupMem] = useState(null); // Reverse Lookup
             const [lookupChar, setLookupChar] = useState(null); // Character Reverse Lookup
+            const [viewingSkill, setViewingSkill] = useState(null); // Skill Detail View
             const [searchQuery, setSearchQuery] = useState('');
             const [viewColumns, setViewColumns] = useState(3);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -342,8 +346,8 @@
                 
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体') return true;
-                        if (t === '敵全体') return false; 
+                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
                             t === char.attribute ||
@@ -364,8 +368,8 @@
                     if (targets.length === 0) return false;
                     
                     return targets.some(t => {
-                        if (t === '味方全体') return true;
-                        if (t === '敵全体') return false; 
+                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
                             t === char.attribute ||
@@ -395,14 +399,14 @@
                 stats: { hp: 'B', atk: 'B', def: 'B', crit: 'B', speed: 'B' },
                 imageUrl: '',
                 skills: [
-                    { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [] },
-                    { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [] },
+                    { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [], description: '' },
+                    { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [], description: '' },
                 ]
             });
 
             const addSkill = () => {
                 if (editingChar.skills.length >= 5) return;
-                const newSkills = [...editingChar.skills, { name: '', category: CATEGORY_ACTIVE, elements: [], effects: [] }];
+                const newSkills = [...editingChar.skills, { name: '', category: CATEGORY_ACTIVE, elements: [], effects: [], description: '' }];
                 setEditingChar({ ...editingChar, skills: newSkills });
             };
 
@@ -519,7 +523,6 @@
                                     <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
                                         <option value="ALL">対象: ALL</option>
                                         <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
-                                        <optgroup label="登録済みキャラ">{characterNames.map(n => <option key={n} value={n}>{n}</option>)}</optgroup>
                                         <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
                                         <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
                                         <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
@@ -623,6 +626,7 @@
                                                                             <div className={`w-6 h-5 rounded-md flex items-center justify-center font-black text-[8px] shrink-0 shadow-sm ${style.className}`}>{style.label}</div>
                                                                             <span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
                                                                         </div>
+                                                                        <button onClick={() => setViewingSkill({...skill, charName: char.name})} className="p-1 rounded text-slate-400 hover:text-blue-500 hover:bg-blue-50"><Icons.FileText size={14}/></button>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
                                                                         {(skill.elements || []).map(elName => {
@@ -808,6 +812,10 @@
                                                                 {[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
                                                             </select>
                                                         </div>
+                                                        {/* Description */}
+                                                        <textarea className="w-full p-2 border border-slate-200 rounded-lg text-xs" rows="3" placeholder="スキル説明文..." value={skill.description || ''} onChange={e => {
+                                                            const ns = [...editingChar.skills]; ns[idx].description = e.target.value; setEditingChar({...editingChar, skills: ns});
+                                                        }} />
                                                         {/* Elements */}
                                                         <div className="flex flex-wrap gap-1">
                                                             {SKILL_ELEMENTS.map(el => (
@@ -1068,6 +1076,60 @@
                             </div>
                         </div>
                     )}
+
+                    {/* Skill Detail Modal */}
+                    {viewingSkill && (
+                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                                    <div>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{viewingSkill.charName} - Skill Detail</span>
+                                        <h2 className="text-xl font-bold text-slate-800">{viewingSkill.name || '名称未設定'}</h2>
+                                    </div>
+                                    <button onClick={() => setViewingSkill(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                </div>
+                                <div className="p-8 space-y-6">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`text-xs font-bold px-3 py-1 rounded border shadow-sm ${getSkillStyle(viewingSkill.category).className}`}>
+                                            {viewingSkill.category}
+                                        </span>
+                                        {(viewingSkill.elements || []).map(elName => {
+                                            const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
+                                            return elInfo ? (
+                                                <span key={elName} className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${elInfo.color}`}>
+                                                    {elInfo.icon} {elName}
+                                                </span>
+                                            ) : null;
+                                        })}
+                                    </div>
+
+                                    {(viewingSkill.effects || []).length > 0 && (
+                                        <div className="space-y-2">
+                                            <h4 className="text-xs font-bold text-slate-400 border-b pb-1">特性</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {viewingSkill.effects.map(eff => (
+                                                    <span key={eff} className="text-xs font-bold px-2 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700">
+                                                        {eff}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-slate-400 border-b pb-1 flex items-center gap-2"><Icons.FileText size={14}/> 説明文</h4>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                                            {viewingSkill.description || '説明文はありません。'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                                    <button onClick={() => setViewingSkill(null)} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold text-sm hover:bg-slate-700 shadow-md">閉じる</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             );
         };
