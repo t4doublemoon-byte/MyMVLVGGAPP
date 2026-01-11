@@ -570,7 +570,7 @@
                                     <div className="p-1.5 bg-blue-900/30 text-blue-300 rounded-md"><Icons.Infinity size={12}/></div>
                                     <div className="min-w-0">
                                         <p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
-                                        <p className="text-[10px] font-black text-blue-200 truncate uppercase">{mem.mazeSkill || "---"}</p>
+                                        <p className="text-[10px] font-black text-blue-200 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
                                     </div>
                                 </div>
                             )}
@@ -729,6 +729,20 @@
                         const scoreA = calculateTotalScore(a);
                         const scoreB = calculateTotalScore(b);
                         return sortOrder === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+                    }
+
+                    // ステータス順の処理（新規追加）
+                    if (isChar && STAT_CONFIG.some(s => s.key === sortBy)) {
+                        const rankA = RANK_TO_SCORE[a.stats?.[sortBy]] || 0;
+                        const rankB = RANK_TO_SCORE[b.stats?.[sortBy]] || 0;
+                        if (rankA !== rankB) {
+                            return sortOrder === 'asc' ? rankA - rankB : rankB - rankA;
+                        }
+                        // ステータスが同じならスコア順（常に降順が良いが、sortOrderに合わせるならこう、要望通りなら「第二ソートはスコア順（高い順）」なので降順固定にする）
+                        // 要望「第二ソートはスコア順」 -> 通常スコアが高い方が上に来るべきなので降順固定で実装します。
+                        const scoreA = calculateTotalScore(a);
+                        const scoreB = calculateTotalScore(b);
+                        return scoreB - scoreA;
                     }
 
                     let valA, valB;
@@ -1129,6 +1143,10 @@
                                 <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                                     {activeTab === 'characters' && <option value="score">総合スコア</option>}
                                     {activeTab === 'characters' && <option value="favorite">お気に入り順</option>}
+                                    {/* ステータスソートの追加 */}
+                                    {activeTab === 'characters' && STAT_CONFIG.map(s => (
+                                        <option key={s.key} value={s.key}>{s.label}順</option>
+                                    ))}
                                     <option value="name">名前順</option>
                                     <option value="date">登録日順</option>
                                 </select>
