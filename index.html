@@ -413,21 +413,10 @@
                         </div>
                     )}
 
-                    {/* お気に入りボタン */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleFavorite(char);
-                        }}
-                        className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors z-20 backdrop-blur-sm ${char.isFavorite ? 'text-yellow-400 bg-black/60' : 'text-slate-400 bg-black/30 hover:text-yellow-400 hover:bg-black/50'}`}
-                    >
-                        <Icons.Star size={18} fill={char.isFavorite ? "currentColor" : "none"} />
-                    </button>
-
                     <div className="flex flex-col h-full relative z-10">
                         {/* テキストエリア: 背景なしで白文字 */}
                         <div className="p-4 flex justify-between items-start">
-                            <div className="flex-grow min-w-0 pr-2 pl-6"> {/* 左側にお気に入りボタンがあるので少しパディング */}
+                            <div className="flex-grow min-w-0 pr-2">
                                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
                                 <p className="text-[10px] font-bold text-slate-200 mb-0.5 truncate italic">{char.nickname}</p>
                                 <h3 className="text-xl font-black text-white italic truncate mb-3 drop-shadow-md">{char.name}</h3>
@@ -449,10 +438,23 @@
                             </div>
                             
                             <div className="flex flex-col items-end gap-3">
-                                <div className="text-right">
-                                    <span className="text-[9px] font-black text-slate-300 block italic uppercase">Score</span>
-                                    <span className="text-2xl font-black text-white leading-none drop-shadow-md">{score}</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right">
+                                        <span className="text-[9px] font-black text-slate-300 block italic uppercase">Score</span>
+                                        <span className="text-2xl font-black text-white leading-none drop-shadow-md">{score}</span>
+                                    </div>
+                                    {/* お気に入りボタン (スコアの右) */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleFavorite(char);
+                                        }}
+                                        className={`p-1.5 rounded-full transition-colors z-20 backdrop-blur-sm border border-slate-600/50 ${char.isFavorite ? 'text-yellow-400 bg-black/60' : 'text-slate-400 bg-black/30 hover:text-yellow-400 hover:bg-black/50'}`}
+                                    >
+                                        <Icons.Star size={16} fill={char.isFavorite ? "currentColor" : "none"} />
+                                    </button>
                                 </div>
+
                                 <div className="flex gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); onLookup(char); }} className="p-2 bg-black/40 hover:bg-black/60 border border-slate-600 rounded-xl text-slate-200 hover:text-white transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
                                     <button onClick={(e) => { e.stopPropagation(); onEdit(char); }} className="p-2 bg-black/40 hover:bg-black/60 border border-slate-600 rounded-xl text-slate-200 hover:text-blue-400 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
