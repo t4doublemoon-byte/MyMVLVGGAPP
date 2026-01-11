@@ -570,6 +570,15 @@
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isLoading, setIsLoading] = useState(true);
             
+            // Alert & Confirm Dialog State
+            const [alertState, setAlertState] = useState({
+                isOpen: false,
+                title: '',
+                message: '',
+                type: 'alert', // 'alert' or 'confirm'
+                onConfirm: null
+            });
+
             // Party Editor UI State
             const [selectedSlot, setSelectedSlot] = useState(null); 
             const [selectedMemSlot, setSelectedMemSlot] = useState(null); 
@@ -739,6 +748,27 @@
             }, [memories, partySlots, characters, equippedMemories, selectedMemSlot]);
 
 
+            // --- Helper Functions for Alert ---
+            const showAlert = (title, message) => {
+                setAlertState({ isOpen: true, title, message, type: 'alert', onConfirm: null });
+            };
+
+            const showConfirm = (title, message, onConfirm) => {
+                setAlertState({ isOpen: true, title, message, type: 'confirm', onConfirm });
+            };
+
+            const closeAlert = () => {
+                setAlertState(prev => ({ ...prev, isOpen: false }));
+            };
+
+            const handleConfirmAction = () => {
+                if (alertState.onConfirm) {
+                    alertState.onConfirm();
+                }
+                closeAlert();
+            };
+
+
             // --- Actions ---
             const handleSave = async (type, data) => {
                 if (!db) return;
@@ -757,14 +787,17 @@
                 setEditingMem(null);
             };
 
-            const handleDelete = async (type, id) => {
-                if (!db || !window.confirm("削除しますか？")) return;
-                const { doc, deleteDoc } = window.FirebaseSDK;
-                const appId = window.__app_id || 'game-data-manager';
-                const colName = type === 'char' ? 'characters' : 'memories';
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, id));
-                setEditingChar(null);
-                setEditingMem(null);
+            const handleDelete = (type, id) => {
+                if (!db) return;
+                
+                showConfirm("削除の確認", "本当にこのデータを削除しますか？この操作は取り消せません。", async () => {
+                    const { doc, deleteDoc } = window.FirebaseSDK;
+                    const appId = window.__app_id || 'game-data-manager';
+                    const colName = type === 'char' ? 'characters' : 'memories';
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, colName, id));
+                    setEditingChar(null);
+                    setEditingMem(null);
+                });
             };
 
             const toggleCharExpansion = (id) => {
@@ -859,7 +892,7 @@
                 if (!currentSlot) {
                     const currentMemberCount = partySlots.filter(s => s && s.charId).length;
                     if (currentMemberCount >= 5) {
-                        alert("パーティメンバーは最大5人までです");
+                        showAlert("編成制限", "パーティメンバーは最大5人までです");
                         return;
                     }
                 }
@@ -872,7 +905,7 @@
             const handleCharSelect = (char) => {
                 if (selectedSlot === null) return;
                 if (partySlots.some(s => s && s.charId === char.firebaseId)) {
-                    alert("すでに編成されています");
+                    showAlert("重複エラー", "このキャラクターはすでに編成されています");
                     return;
                 }
                 const newSlots = [...partySlots];
@@ -1864,6 +1897,46 @@
                                 </div>
                                 <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
                                     <button onClick={() => setViewingSkill(null)} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold text-sm hover:bg-slate-700 shadow-md">閉じる</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Alert / Confirm Dialog */}
+                    {alertState.isOpen && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+                                <div className="p-6 text-center">
+                                    <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${alertState.type === 'confirm' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500'}`}>
+                                        {alertState.type === 'confirm' ? <Icons.AlertTriangle size={24} /> : <Icons.AlertCircle size={24} />}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">{alertState.title}</h3>
+                                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{alertState.message}</p>
+                                </div>
+                                <div className="flex border-t border-slate-100 bg-slate-50">
+                                    {alertState.type === 'confirm' ? (
+                                        <>
+                                            <button 
+                                                onClick={closeAlert} 
+                                                className="flex-1 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors border-r border-slate-100"
+                                            >
+                                                キャンセル
+                                            </button>
+                                            <button 
+                                                onClick={handleConfirmAction} 
+                                                className="flex-1 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                                            >
+                                                削除する
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button 
+                                            onClick={closeAlert} 
+                                            className="w-full py-3 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors"
+                                        >
+                                            OK
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
