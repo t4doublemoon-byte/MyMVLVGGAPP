@@ -717,12 +717,23 @@
                 }
 
                 list.sort((a, b) => {
+                    // お気に入り順の特別処理（サブソート：スコア）
+                    if (isChar && sortBy === 'favorite') {
+                        const favA = a.isFavorite ? 1 : 0;
+                        const favB = b.isFavorite ? 1 : 0;
+                        if (favA !== favB) {
+                            // お気に入りの有無でソート
+                            return sortOrder === 'asc' ? favA - favB : favB - favA;
+                        }
+                        // お気に入り状態が同じならスコア順
+                        const scoreA = calculateTotalScore(a);
+                        const scoreB = calculateTotalScore(b);
+                        return sortOrder === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+                    }
+
                     let valA, valB;
                     if (isChar && sortBy === 'score') {
                         valA = calculateTotalScore(a); valB = calculateTotalScore(b);
-                    } else if (isChar && sortBy === 'favorite') { // 追加: お気に入りソート
-                        valA = a.isFavorite ? 1 : 0;
-                        valB = b.isFavorite ? 1 : 0;
                     } else if (sortBy === 'name') {
                         valA = a.name || ""; valB = b.name || "";
                     } else {
