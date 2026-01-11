@@ -143,8 +143,8 @@
             return `${eff.target}の${eff.param}を${eff.value}${eff.direction}`;
         };
 
-        // スキルカテゴリーごとの色設定
-        const getSkillCategoryColor = (category) => {
+        // スキルカテゴリーごとの色設定（関数名を統一しました）
+        const getSkillStyle = (category) => {
             switch (category) {
                 case CATEGORY_EXTRA: return { label: 'EX', className: 'bg-yellow-500 text-white border-yellow-600' };
                 case CATEGORY_ACTIVE: return { label: 'AC', className: 'bg-red-500 text-white border-red-600' };
@@ -346,7 +346,7 @@
                 
                 return characters.filter(char => {
                     return targets.some(t => {
-                        if (t === '味方全体' || t === '味方単体') return true;
+                        if (t === '味方全体' || t === '味方単体' || t === '自身') return true;
                         if (t === '敵全体' || t === '敵単体') return false; 
                         return (
                             t === char.name ||
