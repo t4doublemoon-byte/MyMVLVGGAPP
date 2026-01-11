@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DATA-CORE Game Manager</title>
-    <script src="[https://unpkg.com/react@18/umd/react.development.js](https://unpkg.com/react@18/umd/react.development.js)"></script>
-    <script src="[https://unpkg.com/react-dom@18/umd/react-dom.development.js](https://unpkg.com/react-dom@18/umd/react-dom.development.js)"></script>
-    <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
-        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js](https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js)";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "[https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js](https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js)";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query } from "[https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js)";
-        import { writeBatch } from "[https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js)";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
         window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, writeBatch };
     </script>
     <style>
-        @import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap)');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -353,7 +353,6 @@
                                     <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
                                     <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
                                 </div>
-                                {/* 選択モードでもボタンを表示するよう変更。クリック伝播を防止 */}
                                 <div className="flex gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); onLookup(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
                                     <button onClick={(e) => { e.stopPropagation(); onEdit(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
@@ -373,7 +372,7 @@
                             </div>
                         </div>
                         
-                        {/* 展開表示 (選択モードでも表示許可) */}
+                        {/* Expand Content */}
                         {isExpanded && (
                             <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
                                 <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
