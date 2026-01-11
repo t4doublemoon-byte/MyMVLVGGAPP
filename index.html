@@ -188,6 +188,21 @@
             return Object.values(char.stats).reduce((acc, rank) => acc + (RANK_TO_SCORE[rank] || 0), 0);
         };
 
+        // ターゲット判定ロジック (共通化)
+        const checkTarget = (targetStr, char) => {
+            if (!targetStr) return false;
+            if (targetStr === '味方全体' || targetStr === '自身') return true; 
+            if (targetStr === '敵全体' || targetStr === '敵単体') return false;
+            return (
+                targetStr === char.name ||
+                targetStr === char.attribute ||
+                targetStr === char.type ||
+                targetStr === char.role ||
+                targetStr === char.aptitude ||
+                targetStr === char.faction
+            );
+        };
+
         // --- Logic for Party Editor ---
         const calculatePartyBonuses = (members, characters) => {
             const activeMembers = members.filter(m => m && m.charId).map(m => {
@@ -284,20 +299,6 @@
             const activeChars = members.filter(m => m && m.charId).map(m => characters.find(c => c.firebaseId === m.charId)).filter(Boolean);
             if (activeChars.length === 0) return { score: 0, targets: [] };
 
-            const checkTarget = (targetStr, char) => {
-                if (!targetStr) return false;
-                if (targetStr === '味方全体' || targetStr === '自身') return true; 
-                if (targetStr === '敵全体' || targetStr === '敵単体') return false;
-                return (
-                    targetStr === char.name ||
-                    targetStr === char.attribute ||
-                    targetStr === char.type ||
-                    targetStr === char.role ||
-                    targetStr === char.aptitude ||
-                    targetStr === char.faction
-                );
-            };
-
             let affectedChars = new Set(); 
             
             if (memory.effect1 && memory.effect1.target) {
@@ -313,6 +314,56 @@
 
             return { score: affectedChars.size, targets: Array.from(affectedChars) };
         };
+
+        // --- 個別キャラクターバフ計算関数 ---
+        const calculateIndividualBuffs = (partySlots, equippedMemories, characters, memories, partyStats) => {
+            const result = {};
+
+            // 各パーティメンバーに対して計算
+            partySlots.forEach((slot, index) => {
+                if (!slot || !slot.charId) return;
+                const char = characters.find(c => c.firebaseId === slot.charId);
+                if (!char) return;
+
+                // 初期値として編成ボーナス（全体）をセット
+                // ※編成ボーナスが特定の属性のみに適用される仕様の場合はここもcheckTarget的な判定が必要だが、
+                // 現状の calculatePartyBonuses は totalBuffs を返しているので全体適用とする
+                // ディープコピー
+                const myBuffs = JSON.parse(JSON.stringify(partyStats.totalBuffs));
+
+                // 装備中のメモリー効果を加算
+                equippedMemories.forEach(mSlot => {
+                    if (!mSlot || !mSlot.memoryId) return;
+                    const mem = memories.find(m => m.firebaseId === mSlot.memoryId);
+                    if (!mem) return;
+
+                    [mem.effect1, mem.effect2].filter(Boolean).forEach(eff => {
+                        // 対象判定
+                        if (checkTarget(eff.target, char)) {
+                            const key = PARAM_KEY_MAP[eff.param];
+                            if (key) {
+                                const isPercent = String(eff.value).includes('%');
+                                const val = parseFloat(eff.value);
+                                const targetKey = isPercent ? 'percent' : 'fixed';
+
+                                if (!isNaN(val)) {
+                                    if (eff.direction === '下降') {
+                                        myBuffs[key][targetKey] -= val;
+                                    } else {
+                                        myBuffs[key][targetKey] += val;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+
+                result[char.firebaseId] = myBuffs;
+            });
+
+            return result;
+        };
+
 
         // --- Reusable Components (Unified) ---
 
@@ -364,7 +415,6 @@
                                     <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
                                     <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
                                 </div>
-                                {/* 選択モードでもボタンを表示するよう変更。クリック伝播を防止 */}
                                 <div className="flex gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); onLookup(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
                                     <button onClick={(e) => { e.stopPropagation(); onEdit(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
@@ -384,7 +434,7 @@
                             </div>
                         </div>
                         
-                        {/* 展開表示 (選択モードでも表示許可) */}
+                        {/* 展開表示 */}
                         {isExpanded && (
                             <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
                                 <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
@@ -627,49 +677,28 @@
                 return list;
             }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
-            // Filtered Characters for Party Selection (Exclude Already Selected)
+            // Filtered Characters for Party Selection
             const availableCharacters = useMemo(() => {
                 if (selectedSlot === null) return [];
-                
-                // 現在のスロット以外のスロットで選択済みのキャラクターIDリスト
-                const usedCharIds = partySlots
-                    .map((s, idx) => (idx !== selectedSlot && s) ? s.charId : null)
-                    .filter(Boolean);
-
-                // ベースリストは全キャラクター（または検索フィルタ適用済みでも可だが、ここは全件から除外する形にする）
+                const usedCharIds = partySlots.map((s, idx) => (idx !== selectedSlot && s) ? s.charId : null).filter(Boolean);
                 let list = [...characters];
-                
-                // 検索フィルタ適用
                 if (searchQuery) {
                     const q = searchQuery.toLowerCase();
                     list = list.filter(c => (c.name || '').toLowerCase().includes(q) || (c.nickname || '').toLowerCase().includes(q));
                 }
-
-                // 除外ロジック適用
                 return list.filter(c => !usedCharIds.includes(c.firebaseId));
             }, [characters, partySlots, selectedSlot, searchQuery]);
 
-            // Party Editor Filtered & Sorted Memories (Exclude Already Equipped)
+            // Party Editor Filtered & Sorted Memories
             const partySuggestedMemories = useMemo(() => {
                  if (selectedMemSlot === null) return [];
-
-                 // 現在のスロット以外のスロットで装備済みのメモリーIDリスト
-                 const usedMemIds = equippedMemories
-                    .map((m, idx) => (idx !== selectedMemSlot && m) ? m.memoryId : null)
-                    .filter(Boolean);
-
-                 // インパクトスコア計算
+                 const usedMemIds = equippedMemories.map((m, idx) => (idx !== selectedMemSlot && m) ? m.memoryId : null).filter(Boolean);
                  const scoredMemories = memories.map(mem => {
                      const impact = getMemoryImpactScore(mem, partySlots, characters);
                      return { ...mem, impactScore: impact.score, targets: impact.targets };
                  });
-
-                 // 使用済みを除外
                  let filtered = scoredMemories.filter(m => !usedMemIds.includes(m.firebaseId));
-                 
-                 // インパクトスコアでソート
                  filtered.sort((a, b) => b.impactScore - a.impactScore);
-
                  return filtered;
             }, [memories, partySlots, characters, equippedMemories, selectedMemSlot]);
 
@@ -800,7 +829,6 @@
             
             const handleCharSelect = (char) => {
                 if (selectedSlot === null) return;
-                // 重複チェックはリスト除外で対応済みだが念のため
                 if (partySlots.some(s => s && s.charId === char.firebaseId)) {
                     alert("すでに編成されています");
                     return;
@@ -823,7 +851,6 @@
             
             const handleMemorySelect = (mem) => {
                 if (selectedMemSlot === null) return;
-                // 重複チェックはリスト除外で対応済み
                 const newMems = [...equippedMemories];
                 newMems[selectedMemSlot] = { memoryId: mem.firebaseId };
                 setEquippedMemories(newMems);
@@ -833,36 +860,17 @@
             // Calculate Party Stats
             const partyStats = useMemo(() => calculatePartyBonuses(partySlots, characters), [partySlots, characters]);
             
-            // Total Buffs (including memories)
-            const totalStats = useMemo(() => {
-                // ディープコピーで取得
-                const stats = JSON.parse(JSON.stringify(partyStats.totalBuffs));
-                
-                equippedMemories.forEach(m => {
-                    if (!m) return;
-                    const mem = memories.find(mm => mm.firebaseId === m.memoryId);
-                    if (!mem) return;
-                    
-                    [mem.effect1, mem.effect2].filter(Boolean).forEach(eff => {
-                        const key = PARAM_KEY_MAP[eff.param];
-                        if (key) {
-                            // %が含まれていれば割合、なければ固定値として扱う
-                            const isPercent = String(eff.value).includes('%');
-                            const val = parseFloat(eff.value);
-                            const targetKey = isPercent ? 'percent' : 'fixed';
+            // Calculate Individual Buffs (For Display on Cards)
+            const individualBuffs = useMemo(() => calculateIndividualBuffs(partySlots, equippedMemories, characters, memories, partyStats), [partySlots, equippedMemories, characters, memories, partyStats]);
 
-                            if (!isNaN(val)) {
-                                if (eff.direction === '下降') {
-                                    stats[key][targetKey] -= val;
-                                } else {
-                                    stats[key][targetKey] += val;
-                                }
-                            }
-                        }
-                    });
-                });
-                return stats;
-            }, [partyStats, equippedMemories, memories]);
+            // Total Buffs (including memories) - FOR SUMMARY PANEL (Kept for compatibility, now aggregation of party buffs)
+            // Note: This summary might be less useful if individual buffs vary wildly, but good for "Team Wide" effects.
+            // Using the first character's buffs as a representative for display if needed, or keeping the logic as is but clarifying.
+            // For now, let's keep the existing `totalStats` logic for the sidebar summary, but strictly it aggregates ALL memory effects as if they apply to everyone (which was the issue).
+            // Better: Sum of all active effects? Or just show Formation Bonuses? 
+            // Let's change sidebar to show Formation Bonuses Only + Maybe "Average Buff"
+            // For now, let's just use the formation bonuses for the sidebar summary to avoid confusion.
+            const totalStats = partyStats.totalBuffs;
 
 
             if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
@@ -998,6 +1006,9 @@
                                                 {[0, 1, 2].map(i => {
                                                     const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
                                                     const isWarning = char && (char.aptitude === '後衛');
+                                                    // 個別バフの取得
+                                                    const myBuffs = char ? individualBuffs[char.firebaseId] : null;
+
                                                     return (
                                                         <div 
                                                             key={i} 
@@ -1007,7 +1018,24 @@
                                                             {char ? (
                                                                 <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
                                                                     {char.imageUrl && <img src={getGoogleDriveUrl(char.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />}
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/>
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"/>
+                                                                    
+                                                                    {/* Buff Indicators */}
+                                                                    <div className="absolute top-1 left-1 flex flex-col gap-0.5 z-10 items-start">
+                                                                        {myBuffs && Object.entries(myBuffs).map(([key, val]) => {
+                                                                            if (val.percent === 0 && val.fixed === 0) return null;
+                                                                            return (
+                                                                                <div key={key} className="flex items-center bg-black/60 rounded px-1 backdrop-blur-sm">
+                                                                                    <span className="text-[8px] font-black text-white mr-1 uppercase">{key}</span>
+                                                                                    <span className={`text-[8px] font-bold ${val.percent > 0 || val.fixed > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                                                        {val.percent !== 0 && `${val.percent > 0 ? '+' : ''}${val.percent}%`}
+                                                                                        {val.fixed !== 0 && `(${val.fixed > 0 ? '+' : ''}${val.fixed})`}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+
                                                                     <div className="relative z-10 flex flex-col items-center justify-end h-full pb-3 px-1">
                                                                         <span className="text-[9px] font-bold text-white/80 uppercase tracking-tighter mb-0.5">{char.role}</span>
                                                                         <span className="text-xs font-black text-white px-2 py-0.5 bg-red-600/80 rounded shadow-sm truncate max-w-full">{char.name}</span>
@@ -1037,6 +1065,9 @@
                                                 {[3, 4, 5].map(i => {
                                                     const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
                                                     const isWarning = char && (char.aptitude === '前衛');
+                                                    // 個別バフの取得
+                                                    const myBuffs = char ? individualBuffs[char.firebaseId] : null;
+
                                                     return (
                                                         <div 
                                                             key={i} 
@@ -1046,7 +1077,24 @@
                                                             {char ? (
                                                                 <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
                                                                     {char.imageUrl && <img src={getGoogleDriveUrl(char.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-500" />}
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/>
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"/>
+                                                                    
+                                                                    {/* Buff Indicators */}
+                                                                    <div className="absolute top-1 left-1 flex flex-col gap-0.5 z-10 items-start">
+                                                                        {myBuffs && Object.entries(myBuffs).map(([key, val]) => {
+                                                                            if (val.percent === 0 && val.fixed === 0) return null;
+                                                                            return (
+                                                                                <div key={key} className="flex items-center bg-black/60 rounded px-1 backdrop-blur-sm">
+                                                                                    <span className="text-[8px] font-black text-white mr-1 uppercase">{key}</span>
+                                                                                    <span className={`text-[8px] font-bold ${val.percent > 0 || val.fixed > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                                                        {val.percent !== 0 && `${val.percent > 0 ? '+' : ''}${val.percent}%`}
+                                                                                        {val.fixed !== 0 && `(${val.fixed > 0 ? '+' : ''}${val.fixed})`}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+
                                                                     <div className="relative z-10 flex flex-col items-center justify-end h-full pb-3 px-1">
                                                                         <span className="text-[9px] font-bold text-white/80 uppercase tracking-tighter mb-0.5">{char.role}</span>
                                                                         <span className="text-xs font-black text-white px-2 py-0.5 bg-blue-600/80 rounded shadow-sm truncate max-w-full">{char.name}</span>
@@ -1140,7 +1188,7 @@
 
                                     {/* Total */}
                                     <div className="mt-auto bg-slate-900 rounded-xl p-4 text-white">
-                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Total Buffs</h4>
+                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Formation Buffs Only</h4>
                                         <div className="grid grid-cols-2 gap-y-3 gap-x-4">
                                             {Object.entries(totalStats).map(([key, val]) => (
                                                 <div key={key}>
