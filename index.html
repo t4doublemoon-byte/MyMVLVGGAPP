@@ -78,7 +78,8 @@
             FileText: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             UserPlus: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg>,
             Layout: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>,
-            AlertTriangle: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            AlertTriangle: ({size=20, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+            Star: ({size=20, className, fill="none"}) => <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         };
 
         // --- CONSTANTS ---
@@ -377,7 +378,7 @@
         // --- Reusable Components (Unified) ---
 
         // Character Card Component
-        const CharacterCard = ({ char, isExpanded, toggleExpansion, onEdit, onLookup, onSkillView, isSelectMode, onClick, isSelected }) => {
+        const CharacterCard = ({ char, isExpanded, toggleExpansion, onEdit, onLookup, onSkillView, isSelectMode, onClick, isSelected, onToggleFavorite }) => {
             const score = calculateTotalScore(char);
             const imgUrl = getGoogleDriveUrl(char.imageUrl);
             const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
@@ -412,10 +413,21 @@
                         </div>
                     )}
 
+                    {/* お気に入りボタン */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(char);
+                        }}
+                        className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors z-20 backdrop-blur-sm ${char.isFavorite ? 'text-yellow-400 bg-black/60' : 'text-slate-400 bg-black/30 hover:text-yellow-400 hover:bg-black/50'}`}
+                    >
+                        <Icons.Star size={18} fill={char.isFavorite ? "currentColor" : "none"} />
+                    </button>
+
                     <div className="flex flex-col h-full relative z-10">
                         {/* テキストエリア: 背景なしで白文字 */}
                         <div className="p-4 flex justify-between items-start">
-                            <div className="flex-grow min-w-0 pr-2">
+                            <div className="flex-grow min-w-0 pr-2 pl-6"> {/* 左側にお気に入りボタンがあるので少しパディング */}
                                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
                                 <p className="text-[10px] font-bold text-slate-200 mb-0.5 truncate italic">{char.nickname}</p>
                                 <h3 className="text-xl font-black text-white italic truncate mb-3 drop-shadow-md">{char.name}</h3>
@@ -734,11 +746,17 @@
                 // 除外処理
                 list = list.filter(c => !usedCharIds.includes(c.firebaseId));
 
-                // ソート処理: メモリー効果対象数(降順) -> スコア(降順)
+                // ソート処理: お気に入り(優先) -> メモリー効果対象数(降順) -> スコア(降順)
                 const equippedMemItem = equippedMemories[selectedSlot];
                 const targetMemory = equippedMemItem ? memories.find(m => m.firebaseId === equippedMemItem.memoryId) : null;
 
                 list.sort((a, b) => {
+                    // 1. お気に入り
+                    if (a.isFavorite !== b.isFavorite) {
+                        return a.isFavorite ? -1 : 1;
+                    }
+
+                    // 2. メモリー効果
                     if (targetMemory) {
                         const getHitCount = (char) => {
                             let hits = 0;
@@ -750,6 +768,7 @@
                         const bHits = getHitCount(b);
                         if (aHits !== bHits) return bHits - aHits;
                     }
+                    // 3. スコア
                     return calculateTotalScore(b) - calculateTotalScore(a);
                 });
 
@@ -822,6 +841,15 @@
                 });
             };
 
+            const handleToggleFavorite = async (char) => {
+                if (!db) return;
+                const { doc, updateDoc } = window.FirebaseSDK;
+                const appId = window.__app_id || 'game-data-manager';
+                await updateDoc(doc(db, 'artifacts', appId, 'users', TARGET_USER_ID, 'characters', char.firebaseId), {
+                    isFavorite: !char.isFavorite
+                });
+            };
+
             const toggleCharExpansion = (id) => {
                 setExpandedChars(prev => {
                     const next = new Set(prev);
@@ -876,6 +904,7 @@
                 attribute: ATTRIBUTES[0].name, type: TYPES[0], role: ROLES[0], aptitude: APTITUDES[0],
                 stats: { hp: 'B', atk: 'B', def: 'B', crit: 'B', speed: 'B' },
                 imageUrl: '',
+                isFavorite: false,
                 skills: [
                     { name: 'アルティメット', category: CATEGORY_EXTRA, elements: ['攻撃'], effects: [], description: '' },
                     { name: 'スキル2', category: CATEGORY_ACTIVE, elements: ['攻撃'], effects: [], description: '' },
@@ -1420,6 +1449,7 @@
                                                                 onLookup={setLookupChar}
                                                                 onSkillView={setViewingSkill}
                                                                 onClick={() => handleCharSelect(char)}
+                                                                onToggleFavorite={handleToggleFavorite}
                                                                 isSelected={false}
                                                             />
                                                         ))
@@ -1491,6 +1521,7 @@
                                         onEdit={setEditingChar}
                                         onLookup={setLookupChar}
                                         onSkillView={setViewingSkill}
+                                        onToggleFavorite={handleToggleFavorite}
                                         isSelectMode={false}
                                     />
                                 ))}
