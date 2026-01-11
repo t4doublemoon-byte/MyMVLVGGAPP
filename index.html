@@ -11,10 +11,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
         import { writeBatch } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-        window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, writeBatch };
+        window.FirebaseSDK = { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, query, writeBatch };
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -176,6 +176,18 @@
             }
         };
 
+        const getRankColor = (rank) => {
+            if (rank === 'S') return 'text-orange-500 font-black';
+            if (rank === 'A') return 'text-red-500 font-bold';
+            if (rank === 'B') return 'text-blue-500 font-bold';
+            return 'text-slate-400 font-medium';
+        };
+
+        const calculateTotalScore = (char) => {
+            if (!char || !char.stats) return 0;
+            return Object.values(char.stats).reduce((acc, rank) => acc + (RANK_TO_SCORE[rank] || 0), 0);
+        };
+
         // --- Logic for Party Editor ---
         const calculatePartyBonuses = (members, characters) => {
             const activeMembers = members.filter(m => m && m.charId).map(m => {
@@ -291,6 +303,179 @@
             return { score: affectedChars.size, targets: Array.from(affectedChars) };
         };
 
+        // --- Reusable Components (Unified) ---
+
+        // Character Card Component
+        const CharacterCard = ({ char, isExpanded, toggleExpansion, onEdit, onLookup, onSkillView, isSelectMode, onClick, isSelected }) => {
+            const score = calculateTotalScore(char);
+            const imgUrl = getGoogleDriveUrl(char.imageUrl);
+            const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
+
+            return (
+                <div 
+                    onClick={isSelectMode ? onClick : undefined}
+                    className={`group relative bg-white rounded-2xl shadow-sm border transition-all hover:-translate-y-1 overflow-hidden
+                        ${isSelected ? 'border-yellow-400 ring-2 ring-yellow-400/30 scale-[1.02]' : 'border-slate-200 hover:border-blue-300'}
+                        ${isSelectMode ? 'cursor-pointer' : ''}
+                    `}
+                >
+                    {imgUrl && (
+                        <div className="absolute inset-0 z-0">
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
+                        </div>
+                    )}
+                    <div className="flex flex-col h-full relative z-10">
+                        <div className="p-4 flex justify-between items-start">
+                            <div className="flex-grow min-w-0 pr-2">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
+                                <p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
+                                <h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
+                                
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    <div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
+                                    <div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
+                                        <Icons.Activity size={10} className="mr-1 text-slate-500"/> {char.type}
+                                    </div>
+                                    <div className="h-6 px-2 flex items-center bg-slate-800 text-white rounded-md text-[9px] font-bold italic tracking-tighter">
+                                        <Icons.Target size={10} className="mr-1 text-blue-400"/> {char.role}
+                                    </div>
+                                    <div className={`h-6 w-8 flex items-center justify-center rounded-md border shadow-sm transition-all ${char.aptitude === '前衛' ? 'border-red-100 text-red-500 bg-red-50' : (char.aptitude === '後衛' ? 'border-blue-100 text-blue-500 bg-blue-50' : 'border-purple-100 text-purple-500 bg-purple-50')}`} title={char.aptitude}>
+                                        {char.aptitude === '前衛' && <Icons.Sword size={12}/>}
+                                        {char.aptitude === '後衛' && <Icons.Crosshair size={12}/>}
+                                        {char.aptitude === '前衛/後衛' && <Icons.Sword size={12}/>}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-col items-end gap-3">
+                                <div className="text-right">
+                                    <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
+                                    <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
+                                </div>
+                                {!isSelectMode && (
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => onLookup(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
+                                        <button onClick={() => onEdit(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                        <button onClick={() => toggleExpansion(char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isExpanded ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isExpanded ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-4 pb-4 mt-auto">
+                            <div className="bg-white/70 backdrop-blur-md rounded-xl p-2 border border-slate-100 flex justify-between shadow-sm">
+                                {STAT_CONFIG.map(({ key, label }) => (
+                                    <div key={key} className="flex flex-col items-center w-full">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase">{label}</span>
+                                        <span className={`text-sm font-black ${getRankColor(char.stats?.[key])}`}>{char.stats?.[key] || '-'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Expand Content (Only in List Mode) */}
+                        {!isSelectMode && isExpanded && (
+                            <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
+                                <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
+                                {(char.skills || []).map((skill, idx) => {
+                                    const style = getSkillStyle(skill.category);
+                                    return (
+                                        <div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                                            <div className="flex justify-between items-center gap-3 mb-2">
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <div className={`w-6 h-5 rounded-md flex items-center justify-center font-black text-[8px] shrink-0 shadow-sm ${style.className}`}>{style.label}</div>
+                                                    <span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
+                                                </div>
+                                                <button onClick={() => onSkillView({...skill, charName: char.name})} className="p-1 rounded text-slate-400 hover:text-blue-500 hover:bg-blue-50"><Icons.FileText size={14}/></button>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
+                                                {(skill.elements || []).map(elName => {
+                                                    const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
+                                                    return elInfo ? (
+                                                        <span key={elName} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border ${elInfo.color}`}>
+                                                            {elInfo.icon} {elName}
+                                                        </span>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                            {(skill.effects || []).length > 0 && (
+                                                <div className="mt-1 flex flex-wrap gap-1 pl-8">
+                                                    {skill.effects.map(eff => <span key={eff} className="text-[8px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500">{eff}</span>)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Memory Card Component
+        const MemoryCard = ({ mem, onEdit, onLookup, isSelectMode, onClick }) => {
+            const imgUrl = getGoogleDriveUrl(mem.imageUrl);
+            return (
+                <div 
+                    onClick={isSelectMode ? onClick : undefined}
+                    className={`group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-300 transition-all hover:-translate-y-1 overflow-hidden flex flex-col
+                        ${isSelectMode ? 'cursor-pointer hover:shadow-md h-auto' : 'min-h-[300px]'}
+                    `}
+                >
+                    {imgUrl && (
+                        <div className="absolute inset-0 z-0">
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
+                        </div>
+                    )}
+                    
+                    <div className={`flex flex-col h-full relative z-10 ${isSelectMode ? 'p-3 gap-2' : 'p-4'}`}>
+                        <div className="flex justify-between items-start mb-3">
+                            <div className="min-w-0 pr-4">
+                                <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
+                                <h3 className={`font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight ${isSelectMode ? 'text-base' : 'text-lg'}`}>{mem.name || "UNNAMED"}</h3>
+                            </div>
+                            {!isSelectMode && (
+                                <div className="flex gap-2">
+                                    <button onClick={() => onLookup(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
+                                    <button onClick={() => onEdit(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-auto space-y-2">
+                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
+                                {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
+                                    <div key={i}>
+                                        <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
+                                        <div className="flex gap-2 items-center bg-white/50 rounded p-1">
+                                            <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                            <div className="min-w-0 flex-grow">
+                                                <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {!isSelectMode && (
+                                <div className="bg-slate-900 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-indigo-900/20">
+                                    <div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-md"><Icons.Infinity size={12}/></div>
+                                    <div className="min-w-0">
+                                        <p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
+                                        <p className="text-[10px] font-black text-indigo-100 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App ---
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -307,11 +492,10 @@
             // UI
             const [editingChar, setEditingChar] = useState(null);
             const [editingMem, setEditingMem] = useState(null);
-            // Replace single expandedChar with expandedChars Set for multiple expansion
             const [expandedChars, setExpandedChars] = useState(new Set());
-            const [lookupMem, setLookupMem] = useState(null); // Reverse Lookup
-            const [lookupChar, setLookupChar] = useState(null); // Character Reverse Lookup
-            const [viewingSkill, setViewingSkill] = useState(null); // Skill Detail View
+            const [lookupMem, setLookupMem] = useState(null); 
+            const [lookupChar, setLookupChar] = useState(null);
+            const [viewingSkill, setViewingSkill] = useState(null);
             const [searchQuery, setSearchQuery] = useState('');
             const [viewColumns, setViewColumns] = useState(3);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -361,7 +545,6 @@
                     onAuthStateChanged(auth, (currentUser) => {
                         setUser(currentUser);
                         if (currentUser) {
-                            // Use fixed ID for sharing data
                             const unsubChar = onSnapshot(collection(firestore, 'artifacts', appId, 'users', TARGET_USER_ID, 'characters'), (snap) => {
                                 setCharacters(snap.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() })));
                             });
@@ -381,11 +564,6 @@
             }, []);
 
             // --- Handlers ---
-            const calculateTotalScore = (char) => {
-                if (!char || !char.stats) return 0;
-                return Object.values(char.stats).reduce((acc, rank) => acc + (RANK_TO_SCORE[rank] || 0), 0);
-            };
-
             const existingFactions = useMemo(() => {
                 const factions = characters.map(c => c.faction).filter(Boolean);
                 return [...new Set([...DEFAULT_FACTIONS, ...factions])];
@@ -439,19 +617,51 @@
                 return list;
             }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
-            // Party Editor Filtered & Sorted Memories
+            // Filtered Characters for Party Selection (Exclude Already Selected)
+            const availableCharacters = useMemo(() => {
+                if (selectedSlot === null) return [];
+                
+                // 現在のスロット以外のスロットで選択済みのキャラクターIDリスト
+                const usedCharIds = partySlots
+                    .map((s, idx) => (idx !== selectedSlot && s) ? s.charId : null)
+                    .filter(Boolean);
+
+                // ベースリストは全キャラクター（または検索フィルタ適用済みでも可だが、ここは全件から除外する形にする）
+                let list = [...characters];
+                
+                // 検索フィルタ適用
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    list = list.filter(c => (c.name || '').toLowerCase().includes(q) || (c.nickname || '').toLowerCase().includes(q));
+                }
+
+                // 除外ロジック適用
+                return list.filter(c => !usedCharIds.includes(c.firebaseId));
+            }, [characters, partySlots, selectedSlot, searchQuery]);
+
+            // Party Editor Filtered & Sorted Memories (Exclude Already Equipped)
             const partySuggestedMemories = useMemo(() => {
+                 if (selectedMemSlot === null) return [];
+
+                 // 現在のスロット以外のスロットで装備済みのメモリーIDリスト
+                 const usedMemIds = equippedMemories
+                    .map((m, idx) => (idx !== selectedMemSlot && m) ? m.memoryId : null)
+                    .filter(Boolean);
+
+                 // インパクトスコア計算
                  const scoredMemories = memories.map(mem => {
                      const impact = getMemoryImpactScore(mem, partySlots, characters);
                      return { ...mem, impactScore: impact.score, targets: impact.targets };
                  });
 
-                 const filtered = scoredMemories.filter(m => m.impactScore > 0);
+                 // 使用済みを除外
+                 let filtered = scoredMemories.filter(m => !usedMemIds.includes(m.firebaseId));
                  
+                 // インパクトスコアでソート
                  filtered.sort((a, b) => b.impactScore - a.impactScore);
 
                  return filtered;
-            }, [memories, partySlots, characters]);
+            }, [memories, partySlots, characters, equippedMemories, selectedMemSlot]);
 
 
             // --- Actions ---
@@ -560,18 +770,6 @@
                 effect2: null
             });
 
-            const getRankColor = (rank) => {
-                if (rank === 'S') return 'text-orange-500 font-black';
-                if (rank === 'A') return 'text-red-500 font-bold';
-                if (rank === 'B') return 'text-blue-500 font-bold';
-                return 'text-slate-400 font-medium';
-            };
-
-            const getAttributeStyle = (attrName) => {
-                const attr = ATTRIBUTES.find(a => a.name === attrName);
-                return attr ? `bg-${attr.color} border-${attr.color}` : 'bg-slate-500';
-            };
-
             const resetFilters = () => {
                 setFilterRole('ALL'); setFilterAttr('ALL'); setFilterFaction('ALL');
                 setFilterSkillEffect('ALL'); setSearchQuery('');
@@ -580,20 +778,19 @@
 
             // Party Editor Functions
             const handleSlotClick = (index) => {
-                // If clicking an occupied slot, remove it
                 if (partySlots[index]) {
                      const newSlots = [...partySlots];
                      newSlots[index] = null;
                      setPartySlots(newSlots);
                 } else {
-                     // Open selection
                      setSelectedSlot(index);
+                     setSearchQuery(''); // Reset search when opening modal
                 }
             };
             
             const handleCharSelect = (char) => {
                 if (selectedSlot === null) return;
-                // Check if char already in party
+                // 重複チェックはリスト除外で対応済みだが念のため
                 if (partySlots.some(s => s && s.charId === char.firebaseId)) {
                     alert("すでに編成されています");
                     return;
@@ -616,11 +813,7 @@
             
             const handleMemorySelect = (mem) => {
                 if (selectedMemSlot === null) return;
-                // Check dupes? Assuming dupes allowed for memories or not? Requirement says 6 memories. Let's allow dupes for now or unique? Usually unique per slot.
-                if (equippedMemories.some(m => m && m.memoryId === mem.firebaseId)) {
-                    // alert("すでに装備されています"); // Allow dupes or restrict? Let's restrict for now
-                    // return;
-                }
+                // 重複チェックはリスト除外で対応済み
                 const newMems = [...equippedMemories];
                 newMems[selectedMemSlot] = { memoryId: mem.firebaseId };
                 setEquippedMemories(newMems);
@@ -632,10 +825,7 @@
             
             // Total Buffs (including memories)
             const totalStats = useMemo(() => {
-                // ベースは属性ボーナス
                 const stats = { ...partyStats.totalBuffs };
-                
-                // メモリー効果の加算
                 equippedMemories.forEach(m => {
                     if (!m) return;
                     const mem = memories.find(mm => mm.firebaseId === m.memoryId);
@@ -715,11 +905,7 @@
                                     </div>
                                 )}
                                 {activeTab === 'characters' && (
-                                    <button 
-                                        onClick={toggleAllCharacters} 
-                                        className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors"
-                                        title={expandedChars.size === filteredList.length ? "全て折りたたむ" : "全て展開"}
-                                    >
+                                    <button onClick={toggleAllCharacters} className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors" title={expandedChars.size === filteredList.length ? "全て折りたたむ" : "全て展開"}>
                                         <Icons.List size={16} />
                                     </button>
                                 )}
@@ -736,49 +922,48 @@
                             </div>
                         </header>
 
-                        {/* Filters (Characters/Memories) */}
+                        {/* Filters (Hide in Party Mode) */}
                         {activeTab !== 'party' && (
-                            <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
-                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
-                                {activeTab === 'characters' ? (
-                                    <>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
-                                    </>
-                                ) : (
-                                    <>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
-                                            <option value="ALL">対象: ALL</option>
-                                            <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
-                                            <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
-                                            <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
-                                            <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
-                                            <optgroup label="登録済みキャラ">{characterNames.map(n => <option key={n} value={n}>{n}</option>)}</optgroup>
-                                        </select>
-                                        <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
-                                            <option value="ALL">パラメータ: ALL</option>
-                                            {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
-                                    </>
-                                )}
-                                
-                                {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
-                                  (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
-                                  <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
-                                }
-                                
-                                <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
-                                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                                        {activeTab === 'characters' && <option value="score">総合スコア</option>}
-                                        <option value="name">名前順</option>
-                                        <option value="date">登録日順</option>
+                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
+                            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
+                            {activeTab === 'characters' ? (
+                                <>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
+                                </>
+                            ) : (
+                                <>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
+                                        <option value="ALL">対象: ALL</option>
+                                        <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
+                                        <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
+                                        <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
+                                        <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
                                     </select>
-                                    <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
-                                </div>
+                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
+                                        <option value="ALL">パラメータ: ALL</option>
+                                        {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                </>
+                            )}
+                            
+                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
+                              (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
+                              <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
+                            }
+                            
+                            <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
+                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
+                                <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                    {activeTab === 'characters' && <option value="score">総合スコア</option>}
+                                    <option value="name">名前順</option>
+                                    <option value="date">登録日順</option>
+                                </select>
+                                <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
                             </div>
+                        </div>
                         )}
 
                         {/* --- Party Editor Tab --- */}
@@ -898,36 +1083,7 @@
                                         </div>
                                     </div>
 
-                                    {/* Suggested Memories List (Inline) */}
-                                    {selectedMemSlot !== null && (
-                                        <div className="mt-4 border-t border-slate-200 pt-4">
-                                            <h4 className="text-xs font-bold text-indigo-600 mb-2">Select Memory (Recommended Order)</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                {partySuggestedMemories.map(mem => (
-                                                    <div 
-                                                        key={mem.firebaseId} 
-                                                        onClick={() => handleMemorySelect(mem)}
-                                                        onMouseEnter={() => setHoveredMemory(mem.firebaseId)}
-                                                        onMouseLeave={() => setHoveredMemory(null)}
-                                                        className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all flex gap-3 ${mem.impactScore === 5 ? 'bg-yellow-50 border-yellow-200' : (mem.impactScore >= 3 ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200')}`}
-                                                    >
-                                                        {mem.imageUrl ? <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-12 h-12 rounded object-cover bg-slate-200" /> : <div className="w-12 h-12 rounded bg-slate-100 flex items-center justify-center text-slate-300"><Icons.Layers size={20}/></div>}
-                                                        <div className="min-w-0 flex-grow">
-                                                            <div className="flex justify-between">
-                                                                <h5 className="text-xs font-bold truncate">{mem.name}</h5>
-                                                                <span className="text-[9px] font-black bg-white px-1.5 py-0.5 rounded border border-slate-100 text-slate-500">Target: {mem.impactScore}</span>
-                                                            </div>
-                                                            <div className="text-[9px] text-slate-500 mt-1 space-y-0.5">
-                                                                {mem.effect1 && <p className="truncate">E1: {formatEffect(mem.effect1)}</p>}
-                                                                {mem.effect2 && <p className="truncate">E2: {formatEffect(mem.effect2)}</p>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
+                                    {/* Suggested Memories List (Inline) - No changes needed here logic wise, but using new logic in useMemo above */}
                                 </div>
 
                                 {/* Right Panel: Summary */}
@@ -982,23 +1138,116 @@
                                     </div>
                                 </div>
 
-                                {/* Character Selector Overlay (Simple) */}
+                                {/* Character Selector Overlay (Rich UI with Exclusion) */}
                                 {selectedSlot !== null && (
-                                    <div className="absolute inset-0 bg-white/95 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                                        <div className="p-4 border-b flex justify-between items-center">
-                                            <h3 className="font-bold text-lg">Select Unit</h3>
-                                            <button onClick={() => setSelectedSlot(null)} className="p-2 bg-slate-100 rounded-full"><Icons.X/></button>
-                                        </div>
-                                        <div className="flex-grow overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            {characters.map(char => (
-                                                <div key={char.firebaseId} onClick={() => handleCharSelect(char)} className="flex items-center gap-3 p-3 border rounded-xl hover:bg-blue-50 cursor-pointer shadow-sm bg-white">
-                                                    {char.imageUrl ? <img src={getGoogleDriveUrl(char.imageUrl)} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center"><Icons.Users/></div>}
-                                                    <div className="min-w-0">
-                                                        <p className="text-[9px] text-slate-400 truncate">{char.faction}</p>
-                                                        <p className="text-xs font-bold truncate">{char.name}</p>
-                                                    </div>
+                                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                        <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                                            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                                <div>
+                                                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2"><Icons.Users className="text-blue-500"/> Select Unit</h3>
+                                                    <p className="text-xs text-slate-500 font-bold mt-1">※ 編成済みのメンバーは表示されません</p>
                                                 </div>
-                                            ))}
+                                                
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative">
+                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={14}/></div>
+                                                        <input 
+                                                            className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50"
+                                                            placeholder="検索..."
+                                                            value={searchQuery}
+                                                            onChange={e => setSearchQuery(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <button onClick={() => setSelectedSlot(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors"><Icons.X/></button>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {/* 解除ボタン */}
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newSlots = [...partySlots];
+                                                            newSlots[selectedSlot] = null;
+                                                            setPartySlots(newSlots);
+                                                            setSelectedSlot(null);
+                                                        }}
+                                                        className="h-32 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 hover:bg-red-100 hover:border-red-400 flex flex-col items-center justify-center text-red-500 gap-2 transition-colors font-bold"
+                                                    >
+                                                        <Icons.X size={24} />
+                                                        <span>選択を解除</span>
+                                                    </button>
+
+                                                    {availableCharacters.length > 0 ? (
+                                                        availableCharacters.map(char => (
+                                                            <CharacterCard 
+                                                                key={char.firebaseId} 
+                                                                char={char}
+                                                                isSelectMode={true}
+                                                                onClick={() => handleCharSelect(char)}
+                                                                isSelected={false}
+                                                            />
+                                                        ))
+                                                    ) : (
+                                                        <div className="col-span-full py-20 text-center text-slate-400 font-bold">
+                                                            選択可能なメンバーがいません
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Memory Selector Overlay (Rich UI with Exclusion) */}
+                                {selectedMemSlot !== null && (
+                                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                        <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                                            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                                <div>
+                                                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2"><Icons.Layers className="text-indigo-500"/> Select Memory</h3>
+                                                    <p className="text-xs text-slate-500 font-bold mt-1">※ 装備済みのメモリーは表示されません (効果が高い順)</p>
+                                                </div>
+                                                <button onClick={() => setSelectedMemSlot(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors"><Icons.X/></button>
+                                            </div>
+                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newMems = [...equippedMemories];
+                                                            newMems[selectedMemSlot] = null;
+                                                            setEquippedMemories(newMems);
+                                                            setSelectedMemSlot(null);
+                                                        }}
+                                                        className="h-32 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 hover:bg-red-100 hover:border-red-400 flex flex-col items-center justify-center text-red-500 gap-2 transition-colors font-bold"
+                                                    >
+                                                        <Icons.X size={24} />
+                                                        <span>装備を外す</span>
+                                                    </button>
+
+                                                    {partySuggestedMemories.length > 0 ? (
+                                                        partySuggestedMemories.map(mem => (
+                                                            <div key={mem.firebaseId} className="relative">
+                                                                {mem.impactScore > 0 && (
+                                                                    <div className="absolute -top-2 -right-2 z-20 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md border-2 border-white">
+                                                                        Target: {mem.impactScore}
+                                                                    </div>
+                                                                )}
+                                                                <MemoryCard 
+                                                                    key={mem.firebaseId} 
+                                                                    mem={mem}
+                                                                    isSelectMode={true}
+                                                                    onClick={() => handleMemorySelect(mem)}
+                                                                />
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="col-span-full py-20 text-center text-slate-400 font-bold">
+                                                            選択可能なメモリーがありません
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1010,163 +1259,34 @@
                         {activeTab !== 'party' && (
                         <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-50">
                             <div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
-                                {activeTab === 'characters' && filteredList.map(char => {
-                                    const score = calculateTotalScore(char);
-                                    // Use expandedChars set check
-                                    const isEx = expandedChars.has(char.firebaseId);
-                                    const imgUrl = getGoogleDriveUrl(char.imageUrl);
-                                    const attrColor = ATTRIBUTES.find(a=>a.name===char.attribute)?.color.replace('bg-', '') || 'slate-400';
-                                    return (
-                                        <div key={char.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all hover:-translate-y-1 overflow-hidden">
-                                            {imgUrl && (
-                                                <div className="absolute inset-0 z-0">
-                                                    <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
-                                                </div>
-                                            )}
-                                            <div className="flex flex-col h-full relative z-10">
-                                                <div className="p-4 flex justify-between items-start">
-                                                    <div className="flex-grow min-w-0 pr-2">
-                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1 truncate">{char.faction}</span>
-                                                        <p className="text-[10px] font-bold text-slate-400 mb-0.5 truncate italic">{char.nickname}</p>
-                                                        <h3 className="text-xl font-black text-slate-900 italic truncate mb-3">{char.name}</h3>
-                                                        
-                                                        <div className="flex flex-wrap gap-2 mb-4">
-                                                            <div className={`h-6 px-2 flex items-center rounded-md text-white text-[9px] font-black shadow-sm bg-${attrColor}`} title={char.attribute}><Icons.Palette size={12} /></div>
-                                                            <div className="h-6 px-2 flex items-center bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[9px] font-black italic">
-                                                                <Icons.Activity size={10} className="mr-1 text-slate-500"/> {char.type}
-                                                            </div>
-                                                            <div className="h-6 px-2 flex items-center bg-slate-800 text-white rounded-md text-[9px] font-bold italic tracking-tighter">
-                                                                <Icons.Target size={10} className="mr-1 text-blue-400"/> {char.role}
-                                                            </div>
-                                                            <div className={`h-6 w-8 flex items-center justify-center rounded-md border shadow-sm transition-all ${char.aptitude === '前衛' ? 'border-red-100 text-red-500 bg-red-50' : (char.aptitude === '後衛' ? 'border-blue-100 text-blue-500 bg-blue-50' : 'border-purple-100 text-purple-500 bg-purple-50')}`} title={char.aptitude}>
-                                                                {char.aptitude === '前衛' && <Icons.Sword size={12}/>}
-                                                                {char.aptitude === '後衛' && <Icons.Crosshair size={12}/>}
-                                                                {char.aptitude === '前衛/後衛' && <Icons.Sword size={12}/>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex flex-col items-end gap-3">
-                                                        <div className="text-right">
-                                                            <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
-                                                            <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
-                                                        </div>
-                                                        <div className="flex gap-1.5">
-                                                            <button onClick={() => setLookupChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
-                                                            <button onClick={() => setEditingChar(char)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
-                                                            <button onClick={() => toggleCharExpansion(char.firebaseId)} className={`p-2 border rounded-xl transition-all shadow-sm ${isEx ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-400'}`}>{isEx ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                {activeTab === 'characters' && filteredList.map(char => (
+                                    <CharacterCard 
+                                        key={char.firebaseId} 
+                                        char={char}
+                                        isExpanded={expandedChars.has(char.firebaseId)}
+                                        toggleExpansion={toggleCharExpansion}
+                                        onEdit={setEditingChar}
+                                        onLookup={setLookupChar}
+                                        onSkillView={setViewingSkill}
+                                        isSelectMode={false}
+                                    />
+                                ))}
 
-                                                <div className="px-4 pb-4 mt-auto">
-                                                    <div className="bg-white/70 backdrop-blur-md rounded-xl p-2 border border-slate-100 flex justify-between shadow-sm">
-                                                        {STAT_CONFIG.map(({ key, label }) => (
-                                                            <div key={key} className="flex flex-col items-center w-full">
-                                                                <span className="text-[8px] font-black text-slate-400 uppercase">{label}</span>
-                                                                <span className={`text-sm font-black ${getRankColor(char.stats?.[key])}`}>{char.stats?.[key] || '-'}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                
-                                                {isEx && (
-                                                    <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
-                                                        <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
-                                                        {(char.skills || []).map((skill, idx) => {
-                                                            const style = getSkillStyle(skill.category);
-                                                            return (
-                                                                <div key={idx} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                                                                    <div className="flex justify-between items-center gap-3 mb-2">
-                                                                        <div className="flex items-center gap-3 overflow-hidden">
-                                                                            <div className={`w-6 h-5 rounded-md flex items-center justify-center font-black text-[8px] shrink-0 shadow-sm ${style.className}`}>{style.label}</div>
-                                                                            <span className="text-xs font-black italic text-slate-800 truncate">{skill.name || '---'}</span>
-                                                                        </div>
-                                                                        <button onClick={() => setViewingSkill({...skill, charName: char.name})} className="p-1 rounded text-slate-400 hover:text-blue-500 hover:bg-blue-50"><Icons.FileText size={14}/></button>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5 flex-wrap pl-8 mb-2">
-                                                                        {(skill.elements || []).map(elName => {
-                                                                            const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
-                                                                            return elInfo ? (
-                                                                                <span key={elName} className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border ${elInfo.color}`}>
-                                                                                    {elInfo.icon} {elName}
-                                                                                </span>
-                                                                            ) : null;
-                                                                        })}
-                                                                    </div>
-                                                                    {(skill.effects || []).length > 0 && (
-                                                                        <div className="mt-1 flex flex-wrap gap-1 pl-8">
-                                                                            {skill.effects.map(eff => <span key={eff} className="text-[8px] font-bold px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500">{eff}</span>)}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {/* ... memories map ... */}
-                                {activeTab === 'memories' && filteredList.map(mem => {
-                                    const imgUrl = getGoogleDriveUrl(mem.imageUrl);
-                                    return (
-                                        <div key={mem.firebaseId} className="group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-300 transition-all hover:-translate-y-1 overflow-hidden min-h-[300px] flex flex-col">
-                                            {imgUrl && (
-                                                <div className="absolute inset-0 z-0">
-                                                    <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
-                                                </div>
-                                            )}
-                                            
-                                            <div className="flex flex-col h-full relative z-10 p-4">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="min-w-0 pr-4">
-                                                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
-                                                        <h3 className="text-lg font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight">{mem.name || "UNNAMED"}</h3>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                       <button onClick={() => setLookupMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
-                                                       <button onClick={() => setEditingMem(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-auto space-y-2">
-                                                    <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
-                                                        {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i}>
-                                                                <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
-                                                                <div className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                                                    <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
-                                                                    <div className="min-w-0 flex-grow">
-                                                                        <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="bg-slate-900 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-                                                        <div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-md"><Icons.Infinity size={12}/></div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
-                                                            <p className="text-[10px] font-black text-indigo-100 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {activeTab === 'memories' && filteredList.map(mem => (
+                                    <MemoryCard
+                                        key={mem.firebaseId}
+                                        mem={mem}
+                                        onEdit={setEditingMem}
+                                        onLookup={setLookupMem}
+                                        isSelectMode={false}
+                                    />
+                                ))}
                             </div>
                         </div>
                         )}
                     </main>
 
                     {/* Character Edit Modal */}
-                    {/* ... (Edit Modal is fine) ... */}
                     {editingChar && (
                         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
