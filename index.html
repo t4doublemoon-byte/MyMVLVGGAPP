@@ -1119,9 +1119,9 @@
                                     </div>
 
                                     {/* Memory Slots */}
-                                    <div className="mt-8">
+                                    <div className="mt-10 w-full flex flex-col items-center">
                                         <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2"><Icons.Layers size={14}/> Memory Slots</h4>
-                                        <div className="flex gap-4 overflow-x-auto pb-4">
+                                        <div className="flex flex-wrap justify-center gap-4 pb-4 w-full max-w-5xl">
                                             {[0,1,2,3,4,5].map(i => {
                                                 const memItem = equippedMemories[i];
                                                 const mem = memItem ? memories.find(m => m.firebaseId === memItem.memoryId) : null;
@@ -1129,17 +1129,27 @@
                                                     <div 
                                                         key={i} 
                                                         onClick={() => handleMemorySlotClick(i)}
-                                                        className={`w-24 h-32 shrink-0 rounded-lg border-2 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${mem ? 'border-indigo-400 bg-white shadow-md' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-white hover:border-indigo-300'}`}
+                                                        className={`w-48 h-20 shrink-0 rounded-lg border-2 flex items-center cursor-pointer transition-all relative overflow-hidden group ${mem ? 'border-indigo-400 bg-white shadow-md' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-white hover:border-indigo-300 justify-center'}`}
                                                     >
                                                         {mem ? (
                                                             <>
-                                                                {mem.imageUrl ? <img src={getGoogleDriveUrl(mem.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90" /> : <div className="absolute inset-0 bg-indigo-50 flex items-center justify-center"><Icons.Image className="text-indigo-200"/></div>}
-                                                                <div className="relative z-10 mt-auto w-full bg-black/60 p-1 text-center">
-                                                                    <span className="text-[9px] font-bold text-white block truncate">{mem.name}</span>
+                                                                <div className="w-20 h-full shrink-0 relative border-r border-indigo-50">
+                                                                    {mem.imageUrl ? <img src={getGoogleDriveUrl(mem.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" /> : <div className="absolute inset-0 bg-indigo-50 flex items-center justify-center"><Icons.Image className="text-indigo-200"/></div>}
+                                                                </div>
+                                                                <div className="flex-grow p-2 min-w-0 flex flex-col justify-center h-full bg-white">
+                                                                    <span className="text-[10px] font-black text-slate-700 block truncate leading-tight mb-0.5">{mem.name}</span>
+                                                                    <div className="flex gap-0.5">
+                                                                         {[mem.effect1, mem.effect2].filter(Boolean).slice(0, 1).map((e, idx) => (
+                                                                             <span key={idx} className="text-[8px] text-slate-400 truncate bg-slate-100 px-1 rounded">{e.target}</span>
+                                                                         ))}
+                                                                    </div>
                                                                 </div>
                                                             </>
                                                         ) : (
-                                                            <Icons.Plus className="text-slate-300"/>
+                                                            <div className="flex flex-col items-center text-slate-300">
+                                                                <Icons.Plus size={20}/>
+                                                                <span className="text-[9px] font-bold mt-1">SLOT {i + 1}</span>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 );
