@@ -21,14 +21,14 @@
         body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .memory-card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3); }
         /* Party Grid Animation */
         .party-slot-enter { animation: slot-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes slot-pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-950 text-slate-200">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -506,40 +506,45 @@
             return (
                 <div 
                     onClick={isSelectMode ? onClick : undefined}
-                    className={`group relative bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-300 transition-all hover:-translate-y-1 overflow-hidden flex flex-col
+                    className={`group relative bg-slate-900 rounded-2xl shadow-sm border border-slate-700 hover:border-blue-500 transition-all hover:-translate-y-1 overflow-hidden flex flex-col
                         ${isSelectMode ? 'cursor-pointer hover:shadow-md h-auto' : 'min-h-[300px]'}
                     `}
                 >
-                    {imgUrl && (
+                    {imgUrl ? (
                         <div className="absolute inset-0 z-0">
-                            <img src={imgUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-white via-indigo-50/40 to-transparent" />
+                            <img src={imgUrl} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            {/* 黒い薄い膜 (すりガラスなし) */}
+                            <div className="absolute inset-0 bg-black/50 transition-opacity group-hover:bg-black/40" />
+                        </div>
+                    ) : (
+                        <div className="absolute inset-0 z-0 bg-slate-800 flex items-center justify-center">
+                            <Icons.Layers className="text-slate-700 w-24 h-24"/>
                         </div>
                     )}
                     
                     <div className={`flex flex-col h-full relative z-10 ${isSelectMode ? 'p-3 gap-2' : 'p-4'}`}>
                         <div className="flex justify-between items-start mb-3">
                             <div className="min-w-0 pr-4">
-                                <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
-                                <h3 className={`font-black text-slate-900 italic truncate tracking-tight uppercase leading-tight ${isSelectMode ? 'text-base' : 'text-lg'}`}>{mem.name || "UNNAMED"}</h3>
+                                <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest block mb-0.5 italic">FRAGMENT</span>
+                                <h3 className={`font-black text-white italic truncate tracking-tight uppercase leading-tight ${isSelectMode ? 'text-base' : 'text-lg'}`}>{mem.name || "UNNAMED"}</h3>
                             </div>
                             {!isSelectMode && (
                                 <div className="flex gap-2">
-                                    <button onClick={() => onLookup(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Search size={14}/></button>
-                                    <button onClick={() => onEdit(mem)} className="p-1.5 bg-white/90 backdrop-blur border border-slate-200 rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
+                                    <button onClick={() => onLookup(mem)} className="p-1.5 bg-black/40 hover:bg-black/60 border border-slate-600 rounded-lg text-slate-300 hover:text-white transition-all shadow-sm"><Icons.Search size={14}/></button>
+                                    <button onClick={() => onEdit(mem)} className="p-1.5 bg-black/40 hover:bg-black/60 border border-slate-600 rounded-lg text-slate-300 hover:text-white transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
                                 </div>
                             )}
                         </div>
 
                         <div className="mt-auto space-y-2">
-                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-2.5 border border-indigo-100 shadow-sm space-y-2">
+                            <div className="bg-black/40 backdrop-blur-sm rounded-xl p-2.5 border border-slate-700/50 shadow-sm space-y-2">
                                 {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
                                     <div key={i}>
                                         <span className="text-[8px] font-bold text-slate-400 uppercase block mb-0.5 ml-0.5">Effect {i + 1}</span>
-                                        <div className="flex gap-2 items-center bg-white/50 rounded p-1">
-                                            <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-indigo-600' : 'bg-indigo-300'}`} />
+                                        <div className="flex gap-2 items-center bg-slate-800/50 rounded p-1">
+                                            <div className={`w-0.5 h-6 rounded-full shrink-0 ${i === 0 ? 'bg-blue-500' : 'bg-blue-800'}`} />
                                             <div className="min-w-0 flex-grow">
-                                                <p className="text-[10px] font-bold text-slate-700 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
+                                                <p className="text-[10px] font-bold text-slate-200 line-clamp-1 leading-snug">{formatEffect(eff)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -547,11 +552,11 @@
                             </div>
 
                             {!isSelectMode && (
-                                <div className="bg-slate-900 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-                                    <div className="p-1.5 bg-indigo-600/20 text-indigo-400 rounded-md"><Icons.Infinity size={12}/></div>
+                                <div className="bg-slate-800 rounded-xl p-2.5 flex items-center gap-2 shadow-lg shadow-black/20">
+                                    <div className="p-1.5 bg-blue-900/30 text-blue-300 rounded-md"><Icons.Infinity size={12}/></div>
                                     <div className="min-w-0">
                                         <p className="text-[7px] font-black text-slate-500 uppercase italic leading-none mb-0.5">Maze Logic</p>
-                                        <p className="text-[10px] font-black text-indigo-100 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
+                                        <p className="text-[10px] font-black text-blue-200 truncate uppercase">{mem.mazeSkill || "INACTIVE"}</p>
                                     </div>
                                 </div>
                             )}
@@ -968,52 +973,52 @@
             if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white font-bold tracking-widest animate-pulse">LOADING DATA-CORE...</div>;
 
             return (
-                <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
+                <div className="flex h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden">
                     {/* Sidebar */}
-                    <aside className={`${isSidebarOpen ? 'w-64 p-6' : 'w-0 p-0 border-0'} bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-sm transition-all duration-300 overflow-hidden whitespace-nowrap relative`}>
+                    <aside className={`${isSidebarOpen ? 'w-64 p-6' : 'w-0 p-0 border-0'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-20 shadow-sm transition-all duration-300 overflow-hidden whitespace-nowrap relative`}>
                         <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3 text-slate-800">
+                            <div className="flex items-center gap-3 text-slate-100">
                                 <div className="p-2 bg-blue-600 text-white rounded-lg"><Icons.Database /></div>
                                 <h1 className="font-black text-xl italic">DATA-CORE</h1>
                             </div>
-                            <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-100 rounded text-slate-400"><Icons.PanelLeftClose /></button>
+                            <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-800 rounded text-slate-400"><Icons.PanelLeftClose /></button>
                         </div>
                         <nav className="flex-grow space-y-2">
-                            <button onClick={() => { setActiveTab('characters'); setEditingChar(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'characters' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => { setActiveTab('characters'); setEditingChar(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'characters' ? 'bg-blue-900/30 text-blue-400 font-bold' : 'text-slate-400 hover:bg-slate-800'}`}>
                                 <div className="flex items-center gap-3"><Icons.Users size={18} /> <span className="text-sm">ユニット名簿</span></div>
-                                <span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{characters.length}</span>
+                                <span className="text-[10px] font-bold bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full">{characters.length}</span>
                             </button>
-                            <button onClick={() => { setActiveTab('memories'); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'memories' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => { setActiveTab('memories'); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'memories' ? 'bg-indigo-900/30 text-indigo-400 font-bold' : 'text-slate-400 hover:bg-slate-800'}`}>
                                 <div className="flex items-center gap-3"><Icons.Layers size={18} /> <span className="text-sm">メモリーバンク</span></div>
-                                <span className="text-[10px] font-bold bg-white border border-slate-200 px-2 py-0.5 rounded-full">{memories.length}</span>
+                                <span className="text-[10px] font-bold bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full">{memories.length}</span>
                             </button>
-                            <button onClick={() => { setActiveTab('party'); setEditingChar(null); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'party' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => { setActiveTab('party'); setEditingChar(null); setEditingMem(null); setSearchQuery(''); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'party' ? 'bg-emerald-900/30 text-emerald-400 font-bold' : 'text-slate-400 hover:bg-slate-800'}`}>
                                 <div className="flex items-center gap-3"><Icons.Layout size={18} /> <span className="text-sm">パーティ編成</span></div>
                             </button>
                         </nav>
                     </aside>
 
                     {/* Main Content */}
-                    <main className="flex-grow flex flex-col h-full overflow-hidden relative">
+                    <main className="flex-grow flex flex-col h-full overflow-hidden relative bg-slate-950">
                         {/* Header */}
-                        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center shrink-0 z-10">
+                        <header className="bg-slate-900 border-b border-slate-800 p-6 flex justify-between items-center shrink-0 z-10">
                             <div className="flex items-center gap-4">
                                 {!isSidebarOpen && (
-                                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
+                                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
                                         <Icons.Menu size={20} />
                                     </button>
                                 )}
-                                <h2 className="text-2xl font-black italic uppercase text-slate-800">
+                                <h2 className="text-2xl font-black italic uppercase text-slate-100">
                                     {activeTab === 'characters' ? 'Unit Registry' : activeTab === 'memories' ? 'Memory Bank' : 'Tactical Editor'}
                                 </h2>
-                                {activeTab !== 'party' && <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>}
+                                {activeTab !== 'party' && <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded">{activeTab === 'characters' ? filteredList.length : filteredList.length} ITEMS</span>}
                             </div>
                             <div className="flex items-center gap-3">
                                 {activeTab !== 'party' && (
                                     <div className="relative">
                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={16}/></div>
                                         <input 
-                                            className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="pl-10 pr-4 py-2 bg-slate-800 text-slate-200 border-none rounded-lg text-sm font-bold w-64 outline-none focus:ring-2 focus:ring-blue-500/50"
                                             placeholder="検索..."
                                             value={searchQuery}
                                             onChange={e => setSearchQuery(e.target.value)}
@@ -1021,18 +1026,18 @@
                                     </div>
                                 )}
                                 {activeTab === 'characters' && (
-                                    <button onClick={toggleAllCharacters} className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-lg transition-colors" title={expandedChars.size === filteredList.length ? "全て折りたたむ" : "全て展開"}>
+                                    <button onClick={toggleAllCharacters} className="p-2 bg-slate-800 text-slate-400 hover:bg-blue-900/30 hover:text-blue-400 rounded-lg transition-colors" title={expandedChars.size === filteredList.length ? "全て折りたたむ" : "全て展開"}>
                                         <Icons.List size={16} />
                                     </button>
                                 )}
                                 {activeTab !== 'party' && (
-                                    <div className="flex bg-slate-100 p-1 rounded-lg">
-                                        <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
-                                        <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
+                                    <div className="flex bg-slate-800 p-1 rounded-lg">
+                                        <button onClick={() => setViewColumns(2)} className={`p-2 rounded-md transition-all ${viewColumns === 2 ? 'bg-slate-700 shadow-sm text-blue-400' : 'text-slate-400'}`}><Icons.Grid2 size={16}/></button>
+                                        <button onClick={() => setViewColumns(3)} className={`p-2 rounded-md transition-all ${viewColumns === 3 ? 'bg-slate-700 shadow-sm text-blue-400' : 'text-slate-400'}`}><Icons.Grid3 size={16}/></button>
                                     </div>
                                 )}
-                                <button onClick={toggleFullScreen} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-lg" title="全画面表示"><Icons.Maximize size={16}/></button>
-                                {activeTab !== 'party' && <button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95">
+                                <button onClick={toggleFullScreen} className="p-2 text-slate-400 hover:text-slate-200 bg-slate-800 rounded-lg" title="全画面表示"><Icons.Maximize size={16}/></button>
+                                {activeTab !== 'party' && <button onClick={() => activeTab === 'characters' ? setEditingChar(initNewCharacter()) : setEditingMem(initNewMemory())} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-all shadow-lg active:scale-95 border border-slate-700">
                                     <Icons.Plus size={16}/> 新規登録
                                 </button>}
                             </div>
@@ -1040,25 +1045,25 @@
 
                         {/* Filters (Hide in Party Mode) */}
                         {activeTab !== 'party' && (
-                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
+                        <div className="bg-slate-900 border-b border-slate-800 px-6 py-3 flex gap-4 overflow-x-auto shrink-0 items-center">
                             <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.Filter size={14}/> 絞り込み:</div>
                             {activeTab === 'characters' ? (
                                 <>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterRole} onChange={e => setFilterRole(e.target.value)}><option value="ALL">ロール: ALL</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
                                 </>
                             ) : (
                                 <>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemTarget} onChange={e => setFilterMemTarget(e.target.value)}>
                                         <option value="ALL">対象: ALL</option>
                                         <optgroup label="共通"><option value="味方全体">味方全体</option><option value="敵全体">敵全体</option></optgroup>
                                         <optgroup label="属性">{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</optgroup>
                                         <optgroup label="ロール">{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>
                                         <optgroup label="勢力">{DEFAULT_FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}</optgroup>
                                     </select>
-                                    <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterMemParam} onChange={e => setFilterMemParam(e.target.value)}>
                                         <option value="ALL">パラメータ: ALL</option>
                                         {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>
@@ -1070,14 +1075,14 @@
                               <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
                             }
                             
-                            <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-200">
+                            <div className="ml-auto flex items-center gap-2 pl-4 border-l border-slate-700">
                                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
-                                <select className="bg-slate-50 border border-slate-200 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                                     {activeTab === 'characters' && <option value="score">総合スコア</option>}
                                     <option value="name">名前順</option>
                                     <option value="date">登録日順</option>
                                 </select>
-                                <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
+                                <button onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')} className="p-1.5 bg-slate-800 border border-slate-700 rounded-md text-slate-500">{sortOrder === 'asc' ? <Icons.ChevronUp size={14}/> : <Icons.ChevronDown size={14}/>}</button>
                             </div>
                         </div>
                         )}
@@ -1093,7 +1098,7 @@
                                         
                                         {/* Front Row (0, 1, 2) - Upper Row */}
                                         <div className="w-full max-w-3xl">
-                                            <h4 className="text-center text-xs font-bold text-red-400 uppercase tracking-widest mb-3 border-b-2 border-red-100 pb-1">Front Guard (前衛)</h4>
+                                            <h4 className="text-center text-xs font-bold text-red-400 uppercase tracking-widest mb-3 border-b-2 border-red-900/50 pb-1">Front Guard (前衛)</h4>
                                             <div className="flex gap-4 justify-center">
                                                 {[0, 1, 2].map(i => {
                                                     const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
@@ -1106,7 +1111,7 @@
                                                         <div 
                                                             key={i} 
                                                             onClick={() => handleSlotClick(i)}
-                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-red-400 bg-white shadow-lg' : 'border-dashed border-red-200 bg-red-50/50 hover:border-red-300 hover:bg-white'} party-slot-enter`}
+                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-red-500/50 bg-slate-900 shadow-lg' : 'border-dashed border-red-900/50 bg-red-900/10 hover:border-red-500/50 hover:bg-slate-900'} party-slot-enter`}
                                                         >
                                                             {char ? (
                                                                 <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
@@ -1145,7 +1150,7 @@
                                                                     )}
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-red-200 flex flex-col items-center">
+                                                                <div className="text-red-900/50 flex flex-col items-center">
                                                                     <Icons.Plus size={24}/>
                                                                     <span className="text-[10px] font-bold mt-2">FRONT {i + 1}</span>
                                                                 </div>
@@ -1158,7 +1163,7 @@
 
                                         {/* Rear Row (3, 4, 5) - Lower Row */}
                                         <div className="w-full max-w-3xl">
-                                            <h4 className="text-center text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 border-b-2 border-blue-100 pb-1">Rear Guard (後衛)</h4>
+                                            <h4 className="text-center text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 border-b-2 border-blue-900/50 pb-1">Rear Guard (後衛)</h4>
                                             <div className="flex gap-4 justify-center">
                                                 {[3, 4, 5].map(i => {
                                                     const char = partySlots[i] ? characters.find(c => c.firebaseId === partySlots[i].charId) : null;
@@ -1171,7 +1176,7 @@
                                                         <div 
                                                             key={i} 
                                                             onClick={() => handleSlotClick(i)}
-                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-blue-400 bg-white shadow-lg' : 'border-dashed border-blue-200 bg-blue-50/50 hover:border-blue-300 hover:bg-white'} party-slot-enter`}
+                                                            className={`w-32 h-40 rounded-xl border-2 flex items-center justify-center cursor-pointer transition-all relative ${char ? 'border-blue-500/50 bg-slate-900 shadow-lg' : 'border-dashed border-blue-900/50 bg-blue-900/10 hover:border-blue-500/50 hover:bg-slate-900'} party-slot-enter`}
                                                         >
                                                             {char ? (
                                                                 <div className="text-center w-full h-full relative overflow-hidden rounded-lg group">
@@ -1210,7 +1215,7 @@
                                                                     )}
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-blue-200 flex flex-col items-center">
+                                                                <div className="text-blue-900/50 flex flex-col items-center">
                                                                     <Icons.Plus size={24}/>
                                                                     <span className="text-[10px] font-bold mt-2">REAR {i - 2}</span>
                                                                 </div>
@@ -1233,7 +1238,7 @@
                                                     <div 
                                                         key={i} 
                                                         onClick={() => handleMemorySlotClick(i)}
-                                                        className={`h-32 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${mem ? 'border-indigo-400 bg-slate-900 shadow-md' : 'border-dashed border-slate-300 bg-slate-50 hover:bg-white hover:border-indigo-300'}`}
+                                                        className={`h-32 rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${mem ? 'border-indigo-400 bg-slate-900 shadow-md' : 'border-dashed border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-indigo-500/50'}`}
                                                     >
                                                         {mem ? (
                                                             <>
@@ -1265,7 +1270,7 @@
                                                                 </div>
                                                             </>
                                                         ) : (
-                                                            <div className="flex flex-col items-center text-slate-300">
+                                                            <div className="flex flex-col items-center text-slate-500">
                                                                 <Icons.Plus size={24}/>
                                                                 <span className="text-[10px] font-bold mt-2">SLOT {i + 1}</span>
                                                             </div>
@@ -1280,8 +1285,8 @@
                                 </div>
 
                                 {/* Right Panel: Summary */}
-                                <div className="w-72 bg-white border-l border-slate-200 p-6 flex flex-col shrink-0 shadow-xl overflow-y-auto">
-                                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b pb-3 mb-4">Party Summary</h3>
+                                <div className="w-72 bg-slate-900 border-l border-slate-800 p-6 flex flex-col shrink-0 shadow-xl overflow-y-auto">
+                                    <h3 className="text-sm font-black text-slate-100 uppercase tracking-widest border-b border-slate-700 pb-3 mb-4">Party Summary</h3>
                                     
                                     {/* Attr Counts */}
                                     <div className="space-y-4 mb-6">
@@ -1311,11 +1316,11 @@
                                     {/* Role Counts */}
                                     <div className="space-y-3 mb-6">
                                         <h4 className="text-xs font-bold text-slate-400">Roles</h4>
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                                        <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
                                             {Object.entries(partyStats.roleCounts || {}).map(([role, count]) => (
                                                 <div key={role} className="flex justify-between items-center text-xs">
-                                                    <span className={`font-bold ${count > 0 ? 'text-slate-700' : 'text-slate-400'}`}>{role}</span>
-                                                    <span className={`font-black ${count > 0 ? 'text-blue-600' : 'text-slate-300'}`}>{count}</span>
+                                                    <span className={`font-bold ${count > 0 ? 'text-slate-300' : 'text-slate-500'}`}>{role}</span>
+                                                    <span className={`font-black ${count > 0 ? 'text-blue-400' : 'text-slate-600'}`}>{count}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1326,18 +1331,18 @@
                                         <h4 className="text-xs font-bold text-slate-400">Active Bonuses</h4>
                                         {partyStats.bonuses.length > 0 ? (
                                             partyStats.bonuses.map((b, i) => (
-                                                <div key={i} className="bg-emerald-50 border border-emerald-100 p-2 rounded-lg">
-                                                    <p className="text-[10px] font-black text-emerald-600 uppercase">{b.text}</p>
-                                                    <p className="text-xs font-bold text-emerald-800">{b.effects}</p>
+                                                <div key={i} className="bg-emerald-900/30 border border-emerald-800 p-2 rounded-lg">
+                                                    <p className="text-[10px] font-black text-emerald-400 uppercase">{b.text}</p>
+                                                    <p className="text-xs font-bold text-emerald-200">{b.effects}</p>
                                                 </div>
                                             ))
                                         ) : (
-                                            <p className="text-[10px] text-slate-400 italic">No active bonuses</p>
+                                            <p className="text-[10px] text-slate-500 italic">No active bonuses</p>
                                         )}
                                     </div>
 
                                     {/* Total */}
-                                    <div className="mt-auto bg-slate-900 rounded-xl p-4 text-white">
+                                    <div className="mt-auto bg-slate-800 border border-slate-700 rounded-xl p-4 text-white">
                                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Formation Buffs Only</h4>
                                         <div className="grid grid-cols-2 gap-y-3 gap-x-4">
                                             {Object.entries(totalStats).map(([key, val]) => (
@@ -1364,28 +1369,28 @@
 
                                 {/* Character Selector Overlay (Rich UI with Exclusion) */}
                                 {selectedSlot !== null && (
-                                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                                        <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                                            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                        <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                                                 <div>
-                                                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2"><Icons.Users className="text-blue-500"/> Select Unit</h3>
+                                                    <h3 className="font-bold text-xl text-slate-100 flex items-center gap-2"><Icons.Users className="text-blue-400"/> Select Unit</h3>
                                                 </div>
                                                 
                                                 <div className="flex items-center gap-3">
                                                     <div className="relative">
                                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search size={14}/></div>
                                                         <input 
-                                                            className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50"
+                                                            className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200"
                                                             placeholder="検索..."
                                                             value={searchQuery}
                                                             onChange={e => setSearchQuery(e.target.value)}
                                                             autoFocus
                                                         />
                                                     </div>
-                                                    <button onClick={() => setSelectedSlot(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors"><Icons.X/></button>
+                                                    <button onClick={() => setSelectedSlot(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400 transition-colors"><Icons.X/></button>
                                                 </div>
                                             </div>
-                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                     {/* 変更: 選択済みのメンバーをクリックした時（スロットに中身がある時）のみ解除ボタンを表示 */}
                                                     {partySlots[selectedSlot] && (
@@ -1396,7 +1401,7 @@
                                                                 setPartySlots(newSlots);
                                                                 setSelectedSlot(null);
                                                             }}
-                                                            className="h-32 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 hover:bg-red-100 hover:border-red-400 flex flex-col items-center justify-center text-red-500 gap-2 transition-colors font-bold"
+                                                            className="h-32 rounded-2xl border-2 border-dashed border-red-900/50 bg-red-900/10 hover:bg-red-900/30 hover:border-red-500/50 flex flex-col items-center justify-center text-red-400 gap-2 transition-colors font-bold"
                                                         >
                                                             <Icons.X size={24} />
                                                             <span>選択を解除</span>
@@ -1419,7 +1424,7 @@
                                                             />
                                                         ))
                                                     ) : (
-                                                        <div className="col-span-full py-20 text-center text-slate-400 font-bold">
+                                                        <div className="col-span-full py-20 text-center text-slate-500 font-bold">
                                                             {partySlots[selectedSlot] ? "入れ替え可能なメンバーがいません" : "選択可能なメンバーがいません"}
                                                         </div>
                                                     )}
@@ -1431,15 +1436,15 @@
 
                                 {/* Memory Selector Overlay (Rich UI with Exclusion) */}
                                 {selectedMemSlot !== null && (
-                                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                                        <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                                            <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                        <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                                                 <div>
-                                                    <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2"><Icons.Layers className="text-indigo-500"/> Select Memory</h3>
+                                                    <h3 className="font-bold text-xl text-slate-100 flex items-center gap-2"><Icons.Layers className="text-indigo-400"/> Select Memory</h3>
                                                 </div>
-                                                <button onClick={() => setSelectedMemSlot(null)} className="p-2 bg-slate-200 rounded-full hover:bg-slate-300 transition-colors"><Icons.X/></button>
+                                                <button onClick={() => setSelectedMemSlot(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400 transition-colors"><Icons.X/></button>
                                             </div>
-                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                            <div className="flex-grow overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                     {/* 「装備を外す」ボタンは削除されました */}
 
@@ -1460,7 +1465,7 @@
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        <div className="col-span-full py-20 text-center text-slate-400 font-bold">
+                                                        <div className="col-span-full py-20 text-center text-slate-500 font-bold">
                                                             選択可能なメモリーがありません
                                                         </div>
                                                     )}
@@ -1475,7 +1480,7 @@
 
                         {/* List Grid (Existing) */}
                         {activeTab !== 'party' && (
-                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-50">
+                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-slate-950">
                             <div className={`grid gap-6 ${viewColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'} max-w-[1600px] mx-auto`}>
                                 {activeTab === 'characters' && filteredList.map(char => (
                                     <CharacterCard 
@@ -1506,11 +1511,11 @@
 
                     {/* Character Edit Modal */}
                     {editingChar && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Edit3 size={20} className="text-blue-600"/> ユニット編集</h2>
-                                    <button onClick={() => setEditingChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
+                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2"><Icons.Edit3 size={20} className="text-blue-400"/> ユニット編集</h2>
+                                    <button onClick={() => setEditingChar(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Icons.X size={20}/></button>
                                 </div>
                                 <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1518,51 +1523,51 @@
                                             {/* Basic Info */}
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
+                                                    <label className="text-xs font-bold text-slate-400 block mb-1">画像ID (Google Drive)</label>
                                                     <div className="flex gap-2">
-                                                        <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.imageUrl} onChange={e => setEditingChar({...editingChar, imageUrl: e.target.value})} placeholder="Drive File ID" />
-                                                        {editingChar.imageUrl && <img src={getGoogleDriveUrl(editingChar.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
+                                                        <input className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.imageUrl} onChange={e => setEditingChar({...editingChar, imageUrl: e.target.value})} placeholder="Drive File ID" />
+                                                        {editingChar.imageUrl && <img src={getGoogleDriveUrl(editingChar.imageUrl)} className="w-10 h-10 rounded object-cover border border-slate-700" />}
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <div className="col-span-1">
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">二つ名</label>
-                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.nickname} onChange={e => setEditingChar({...editingChar, nickname: e.target.value})} />
+                                                        <label className="text-xs font-bold text-slate-400 block mb-1">二つ名</label>
+                                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.nickname} onChange={e => setEditingChar({...editingChar, nickname: e.target.value})} />
                                                     </div>
                                                     <div className="col-span-2">
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ユニット名</label>
-                                                        <input className="w-full p-2 border border-slate-200 rounded-lg text-sm font-bold" value={editingChar.name} onChange={e => setEditingChar({...editingChar, name: e.target.value})} />
+                                                        <label className="text-xs font-bold text-slate-400 block mb-1">ユニット名</label>
+                                                        <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-bold text-slate-200" value={editingChar.name} onChange={e => setEditingChar({...editingChar, name: e.target.value})} />
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">勢力</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.faction} onChange={e => setEditingChar({...editingChar, faction: e.target.value})}>
+                                                        <label className="text-xs font-bold text-slate-400 block mb-1">勢力</label>
+                                                        <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.faction} onChange={e => setEditingChar({...editingChar, faction: e.target.value})}>
                                                             {DEFAULT_FACTIONS.map(f => <option key={f}>{f}</option>)}
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">ロール</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.role} onChange={e => setEditingChar({...editingChar, role: e.target.value})}>
+                                                        <label className="text-xs font-bold text-slate-400 block mb-1">ロール</label>
+                                                        <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.role} onChange={e => setEditingChar({...editingChar, role: e.target.value})}>
                                                             {ROLES.map(r => <option key={r}>{r}</option>)}
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="text-xs font-bold text-slate-500 block mb-1">属性</label>
-                                                        <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.attribute} onChange={e => setEditingChar({...editingChar, attribute: e.target.value})}>
+                                                        <label className="text-xs font-bold text-slate-400 block mb-1">属性</label>
+                                                        <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.attribute} onChange={e => setEditingChar({...editingChar, attribute: e.target.value})}>
                                                             {ATTRIBUTES.map(a => <option key={a.name}>{a.name}</option>)}
                                                         </select>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         <div>
-                                                            <label className="text-xs font-bold text-slate-500 block mb-1">タイプ</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.type} onChange={e => setEditingChar({...editingChar, type: e.target.value})}>
+                                                            <label className="text-xs font-bold text-slate-400 block mb-1">タイプ</label>
+                                                            <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.type} onChange={e => setEditingChar({...editingChar, type: e.target.value})}>
                                                                 {TYPES.map(t => <option key={t}>{t}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-xs font-bold text-slate-500 block mb-1">適性</label>
-                                                            <select className="w-full p-2 border border-slate-200 rounded-lg text-sm" value={editingChar.aptitude} onChange={e => setEditingChar({...editingChar, aptitude: e.target.value})}>
+                                                            <label className="text-xs font-bold text-slate-400 block mb-1">適性</label>
+                                                            <select className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingChar.aptitude} onChange={e => setEditingChar({...editingChar, aptitude: e.target.value})}>
                                                                 {APTITUDES.map(a => <option key={a}>{a}</option>)}
                                                             </select>
                                                         </div>
@@ -1571,13 +1576,13 @@
                                             </div>
                                             
                                             {/* Stats */}
-                                            <div className="bg-slate-100 p-4 rounded-xl">
-                                                <label className="text-xs font-bold text-slate-500 block mb-2">ステータス評価</label>
+                                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                                <label className="text-xs font-bold text-slate-400 block mb-2">ステータス評価</label>
                                                 <div className="grid grid-cols-5 gap-2">
                                                     {STAT_CONFIG.map(s => (
                                                         <div key={s.key} className="text-center">
-                                                            <span className="text-[10px] font-bold text-slate-400 block mb-1">{s.label}</span>
-                                                            <select className="bg-white border border-slate-200 rounded text-sm font-black w-full text-center" value={editingChar.stats[s.key]} onChange={e => setEditingChar({...editingChar, stats: {...editingChar.stats, [s.key]: e.target.value}})}>
+                                                            <span className="text-[10px] font-bold text-slate-500 block mb-1">{s.label}</span>
+                                                            <select className="bg-slate-900 border border-slate-700 rounded text-sm font-black w-full text-center text-slate-200" value={editingChar.stats[s.key]} onChange={e => setEditingChar({...editingChar, stats: {...editingChar.stats, [s.key]: e.target.value}})}>
                                                                 {RANKS.map(r => <option key={r}>{r}</option>)}
                                                             </select>
                                                         </div>
@@ -1588,29 +1593,29 @@
 
                                         {/* Skills Editor */}
                                         <div className="space-y-4">
-                                            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                                                <label className="text-xs font-bold text-slate-500 block">スキル構成 (Skill Protocols)</label>
-                                                <button onClick={addSkill} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
+                                            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                                                <label className="text-xs font-bold text-slate-400 block">スキル構成 (Skill Protocols)</label>
+                                                <button onClick={addSkill} className="text-xs font-bold text-blue-400 hover:bg-blue-900/30 px-2 py-1 rounded flex items-center gap-1"><Icons.Plus size={12}/> 追加</button>
                                             </div>
                                             <div className="space-y-4 pr-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                                                 {(editingChar.skills || []).map((skill, idx) => (
-                                                    <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 relative group">
+                                                    <div key={idx} className="p-4 bg-slate-800/50 rounded-xl border border-slate-700 space-y-3 relative group">
                                                         {editingChar.skills.length > 2 && (
-                                                            <button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-400 hover:text-red-500"><Icons.Trash2 size={14}/></button>
+                                                            <button onClick={() => removeSkill(idx)} className="absolute top-2 right-2 text-slate-500 hover:text-red-400"><Icons.Trash2 size={14}/></button>
                                                         )}
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-200 text-slate-500`}>{idx + 1}</span>
-                                                            <input className="flex-grow p-1.5 border border-slate-300 rounded text-sm font-bold" placeholder="スキル名" value={skill.name} onChange={e => {
+                                                            <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black bg-slate-700 text-slate-400`}>{idx + 1}</span>
+                                                            <input className="flex-grow p-1.5 bg-slate-900 border border-slate-700 rounded text-sm font-bold text-slate-200" placeholder="スキル名" value={skill.name} onChange={e => {
                                                                 const ns = [...editingChar.skills]; ns[idx].name = e.target.value; setEditingChar({...editingChar, skills: ns});
                                                             }} />
-                                                            <select className="p-1.5 border border-slate-300 rounded text-xs" value={skill.category} onChange={e => {
+                                                            <select className="p-1.5 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300" value={skill.category} onChange={e => {
                                                                 const ns = [...editingChar.skills]; ns[idx].category = e.target.value; setEditingChar({...editingChar, skills: ns});
                                                             }}>
                                                                 {[CATEGORY_EXTRA, CATEGORY_ACTIVE, CATEGORY_PASSIVE].map(c => <option key={c}>{c}</option>)}
                                                             </select>
                                                         </div>
                                                         {/* Description */}
-                                                        <textarea className="w-full p-2 border border-slate-200 rounded-lg text-xs" rows="3" placeholder="スキル説明文..." value={skill.description || ''} onChange={e => {
+                                                        <textarea className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300" rows="3" placeholder="スキル説明文..." value={skill.description || ''} onChange={e => {
                                                             const ns = [...editingChar.skills]; ns[idx].description = e.target.value; setEditingChar({...editingChar, skills: ns});
                                                         }} />
                                                         {/* Elements */}
@@ -1621,20 +1626,20 @@
                                                                     const cur = ns[idx].elements || [];
                                                                     ns[idx].elements = cur.includes(el.name) ? cur.filter(x => x !== el.name) : [...cur, el.name];
                                                                     setEditingChar({...editingChar, skills: ns});
-                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 ${skill.elements?.includes(el.name) ? 'bg-slate-700 text-white border-slate-600' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>
                                                                     {el.icon} {el.name}
                                                                 </button>
                                                             ))}
                                                         </div>
                                                         {/* Effects */}
-                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200">
+                                                        <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-700">
                                                             {SKILL_EFFECTS.map(eff => (
                                                                 <button key={eff} onClick={() => {
                                                                     const ns = [...editingChar.skills];
                                                                     const cur = ns[idx].effects || [];
                                                                     ns[idx].effects = cur.includes(eff) ? cur.filter(x => x !== eff) : [...cur, eff];
                                                                     setEditingChar({...editingChar, skills: ns});
-                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-white text-slate-400 border-slate-200'}`}>
+                                                                }} className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${skill.effects?.includes(eff) ? 'bg-blue-900/50 text-blue-300 border-blue-800' : 'bg-slate-900 text-slate-500 border-slate-700'}`}>
                                                                     {eff}
                                                                 </button>
                                                             ))}
@@ -1645,10 +1650,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-                                    {editingChar.firebaseId ? <button onClick={() => handleDelete('char', editingChar.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">このデータを削除</button> : <div/>}
+                                <div className="p-6 bg-slate-900 border-t border-slate-800 flex justify-between">
+                                    {editingChar.firebaseId ? <button onClick={() => handleDelete('char', editingChar.firebaseId)} className="text-red-400 font-bold text-sm hover:underline">このデータを削除</button> : <div/>}
                                     <div className="flex gap-3">
-                                        <button onClick={() => setEditingChar(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
+                                        <button onClick={() => setEditingChar(null)} className="px-6 py-2 rounded-lg text-slate-400 hover:bg-slate-800 font-bold text-sm">キャンセル</button>
                                         <button onClick={() => handleSave('char', editingChar)} className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md">保存する</button>
                                     </div>
                                 </div>
@@ -1658,24 +1663,24 @@
 
                     {/* Memory Edit Modal */}
                     {editingMem && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Icons.Layers size={20} className="text-indigo-600"/> メモリー編集</h2>
-                                    <button onClick={() => setEditingMem(null)} className="p-2 hover:bg-slate-200 rounded-full"><Icons.X size={20}/></button>
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-900 rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 border border-slate-800">
+                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                                    <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2"><Icons.Layers size={20} className="text-indigo-400"/> メモリー編集</h2>
+                                    <button onClick={() => setEditingMem(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><Icons.X size={20}/></button>
                                 </div>
                                 <div className="flex-grow overflow-y-auto p-8 space-y-6">
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 block mb-1">画像ID (Google Drive)</label>
+                                            <label className="text-xs font-bold text-slate-400 block mb-1">画像ID (Google Drive)</label>
                                             <div className="flex gap-2">
-                                                <input className="flex-grow p-2 border border-slate-200 rounded-lg text-sm" value={editingMem.imageUrl} onChange={e => setEditingMem({...editingMem, imageUrl: e.target.value})} placeholder="Drive File ID" />
-                                                {editingMem.imageUrl && <img src={getGoogleDriveUrl(editingMem.imageUrl)} className="w-10 h-10 rounded object-cover border" />}
+                                                <input className="flex-grow p-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200" value={editingMem.imageUrl} onChange={e => setEditingMem({...editingMem, imageUrl: e.target.value})} placeholder="Drive File ID" />
+                                                {editingMem.imageUrl && <img src={getGoogleDriveUrl(editingMem.imageUrl)} className="w-10 h-10 rounded object-cover border border-slate-700" />}
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 block mb-1">メモリー名</label>
-                                            <input className="w-full p-2 border border-slate-200 rounded-lg text-lg font-bold" value={editingMem.name} onChange={e => setEditingMem({...editingMem, name: e.target.value})} />
+                                            <label className="text-xs font-bold text-slate-400 block mb-1">メモリー名</label>
+                                            <input className="w-full p-2 bg-slate-800 border border-slate-700 rounded-lg text-lg font-bold text-slate-200" value={editingMem.name} onChange={e => setEditingMem({...editingMem, name: e.target.value})} />
                                         </div>
                                     </div>
 
@@ -1685,10 +1690,10 @@
                                         const isTextMode = typeof editingMem[k] === 'string';
 
                                         return (
-                                            <div key={num} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                                            <div key={num} className="p-4 bg-slate-800 rounded-xl border border-slate-700 space-y-3">
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-black text-indigo-500">効果 {num}</span>
+                                                        <span className="text-xs font-black text-indigo-400">効果 {num}</span>
                                                         <button 
                                                             onClick={() => {
                                                                 if (!eff && num === 2) {
@@ -1697,7 +1702,7 @@
                                                                     setEditingMem({...editingMem, [k]: null});
                                                                 }
                                                             }}
-                                                            className={`p-1 rounded hover:bg-slate-200 ${!eff && num === 2 ? 'text-blue-500' : 'text-red-500'}`}
+                                                            className={`p-1 rounded hover:bg-slate-700 ${!eff && num === 2 ? 'text-blue-400' : 'text-red-400'}`}
                                                             title={!eff ? "効果を追加" : "効果を削除"}
                                                         >
                                                             {!eff && num === 2 ? <Icons.Plus size={12}/> : (num === 2 ? <Icons.Trash2 size={12}/> : null)}
@@ -1711,20 +1716,20 @@
                                                                         setEditingMem({...editingMem, [k]: formatEffect(eff)});
                                                                     }
                                                                 }}
-                                                                className="p-1 rounded hover:bg-slate-200 text-slate-400"
+                                                                className="p-1 rounded hover:bg-slate-700 text-slate-400"
                                                                 title={isTextMode ? "構造化モードへ切り替え" : "テキストモードへ切り替え"}
                                                             >
                                                                 {isTextMode ? <Icons.Grid2 size={12}/> : <Icons.Edit3 size={12}/>}
                                                             </button>
                                                         )}
                                                     </div>
-                                                    {eff && <span className="text-[10px] bg-white px-2 py-1 rounded border border-slate-200 text-slate-500">{formatEffect(eff)}</span>}
+                                                    {eff && <span className="text-[10px] bg-slate-900 px-2 py-1 rounded border border-slate-700 text-slate-400">{formatEffect(eff)}</span>}
                                                 </div>
                                                 
                                                 {eff && (
                                                     isTextMode ? (
                                                         <textarea 
-                                                            className="w-full p-2 border border-slate-200 rounded-lg text-xs" 
+                                                            className="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300" 
                                                             rows="3"
                                                             value={editingMem[k]} 
                                                             onChange={e => setEditingMem({...editingMem, [k]: e.target.value})}
@@ -1733,8 +1738,8 @@
                                                     ) : (
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">対象</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
+                                                                <label className="text-[10px] font-bold text-slate-500 block">対象</label>
+                                                                <select className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300" value={eff.target} onChange={e => setEditingMem({...editingMem, [k]: {...eff, target: e.target.value}})}>
                                                                     <option value="味方全体">味方全体</option>
                                                                     <option value="敵全体">敵全体</option>
                                                                     <optgroup label="登録済みキャラ">
@@ -1748,18 +1753,18 @@
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">パラメータ</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
+                                                                <label className="text-[10px] font-bold text-slate-500 block">パラメータ</label>
+                                                                <select className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300" value={eff.param} onChange={e => setEditingMem({...editingMem, [k]: {...eff, param: e.target.value}})}>
                                                                     {MEMORY_PARAMS.map(p => <option key={p} value={p}>{p}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">補正値</label>
-                                                                <input className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
+                                                                <label className="text-[10px] font-bold text-slate-500 block">補正値</label>
+                                                                <input className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300" value={eff.value} onChange={e => setEditingMem({...editingMem, [k]: {...eff, value: e.target.value}})} placeholder="10%" />
                                                             </div>
                                                             <div>
-                                                                <label className="text-[10px] font-bold text-slate-400 block">増減</label>
-                                                                <select className="w-full p-2 border border-slate-200 rounded text-xs" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
+                                                                <label className="text-[10px] font-bold text-slate-500 block">増減</label>
+                                                                <select className="w-full p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300" value={eff.direction} onChange={e => setEditingMem({...editingMem, [k]: {...eff, direction: e.target.value}})}>
                                                                     <option>上昇</option><option>下降</option>
                                                                 </select>
                                                             </div>
@@ -1771,15 +1776,15 @@
                                     })}
                                     
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 block mb-1">メイズスキル (Maze Logic)</label>
-                                        <input className="w-full p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
+                                        <label className="text-xs font-bold text-slate-400 block mb-1">メイズスキル (Maze Logic)</label>
+                                        <input className="w-full p-2 bg-indigo-900/30 border border-indigo-800 rounded-lg text-sm text-indigo-300" value={editingMem.mazeSkill} onChange={e => setEditingMem({...editingMem, mazeSkill: e.target.value})} />
                                     </div>
                                 </div>
                                 
-                                <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-between">
-                                    {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-500 font-bold text-sm hover:underline">削除</button> : <div/>}
+                                <div className="p-6 bg-slate-900 border-t border-slate-800 flex justify-between">
+                                    {editingMem.firebaseId ? <button onClick={() => handleDelete('mem', editingMem.firebaseId)} className="text-red-400 font-bold text-sm hover:underline">削除</button> : <div/>}
                                     <div className="flex gap-3">
-                                        <button onClick={() => setEditingMem(null)} className="px-6 py-2 rounded-lg text-slate-500 hover:bg-slate-200 font-bold text-sm">キャンセル</button>
+                                        <button onClick={() => setEditingMem(null)} className="px-6 py-2 rounded-lg text-slate-400 hover:bg-slate-800 font-bold text-sm">キャンセル</button>
                                         <button onClick={() => handleSave('mem', editingMem)} className="px-8 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 shadow-md">保存する</button>
                                     </div>
                                 </div>
@@ -1789,37 +1794,37 @@
 
                     {/* Reverse Lookup Modal */}
                     {lookupMem && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-900 rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 border border-slate-800">
+                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                                     <div>
-                                        <span className="text-[10px] font-black text-indigo-500 uppercase">AFFECTED UNITS</span>
-                                        <h3 className="text-xl font-bold text-slate-800">{lookupMem.name} の影響対象</h3>
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase">AFFECTED UNITS</span>
+                                        <h3 className="text-xl font-bold text-slate-100">{lookupMem.name} の影響対象</h3>
                                     </div>
-                                    <button onClick={() => setLookupMem(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                    <button onClick={() => setLookupMem(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Icons.X size={20}/></button>
                                 </div>
-                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                <div className="flex-grow overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {getAffectedUnits(lookupMem).length > 0 ? (
                                             getAffectedUnits(lookupMem).map(char => {
                                                 const score = calculateTotalScore(char);
                                                 return (
-                                                    <div key={char.firebaseId} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                                    <div key={char.firebaseId} className="flex items-center gap-3 p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
                                                         {char.imageUrl ? (
-                                                            <img src={getGoogleDriveUrl(char.imageUrl)} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                                                            <img src={getGoogleDriveUrl(char.imageUrl)} className="w-12 h-12 rounded-lg object-cover shrink-0 border border-slate-700" />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Users size={20}/></div>
+                                                            <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center text-slate-600 shrink-0"><Icons.Users size={20}/></div>
                                                         )}
                                                         <div className="min-w-0">
-                                                            <span className="text-[9px] font-bold text-slate-400 block truncate">{char.nickname || '---'}</span>
-                                                            <p className="text-sm font-black text-slate-800 truncate leading-tight">{char.name}</p>
-                                                            <p className="text-[10px] font-bold text-blue-600 mt-0.5">Score: {score}</p>
+                                                            <span className="text-[9px] font-bold text-slate-500 block truncate">{char.nickname || '---'}</span>
+                                                            <p className="text-sm font-black text-slate-200 truncate leading-tight">{char.name}</p>
+                                                            <p className="text-[10px] font-bold text-blue-400 mt-0.5">Score: {score}</p>
                                                         </div>
                                                     </div>
                                                 );
                                             })
                                         ) : (
-                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
+                                            <div className="col-span-full py-10 text-center text-slate-500 text-sm font-bold">
                                                 該当するユニットが見つかりません。<br/>
                                                 <span className="text-xs font-normal">※「味方全体」等は全員が対象となりますが、ここでは個別の条件一致のみ表示されます。</span>
                                             </div>
@@ -1832,31 +1837,31 @@
 
                     {/* Character Reverse Lookup Modal */}
                     {lookupChar && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-900 rounded-2xl w-full max-w-2xl max-h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 border border-slate-800">
+                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                                     <div>
-                                        <span className="text-[10px] font-black text-indigo-500 uppercase">TARGETING MEMORIES</span>
-                                        <h3 className="text-xl font-bold text-slate-800">{lookupChar.name} に有効なメモリー</h3>
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase">TARGETING MEMORIES</span>
+                                        <h3 className="text-xl font-bold text-slate-100">{lookupChar.name} に有効なメモリー</h3>
                                     </div>
-                                    <button onClick={() => setLookupChar(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                    <button onClick={() => setLookupChar(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Icons.X size={20}/></button>
                                 </div>
-                                <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
+                                <div className="flex-grow overflow-y-auto p-6 bg-slate-950 custom-scrollbar">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {getTargetingMemories(lookupChar).length > 0 ? (
                                             getTargetingMemories(lookupChar).map(mem => (
-                                                <div key={mem.firebaseId} className="flex flex-col gap-2 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-colors">
+                                                <div key={mem.firebaseId} className="flex flex-col gap-2 p-4 bg-slate-900 rounded-xl border border-slate-800 shadow-sm hover:border-indigo-500/50 transition-colors">
                                                     <div className="flex items-center gap-3 mb-1">
                                                         {mem.imageUrl ? (
-                                                            <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                                            <img src={getGoogleDriveUrl(mem.imageUrl)} className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-700" />
                                                         ) : (
-                                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0"><Icons.Layers size={16}/></div>
+                                                            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-600 shrink-0"><Icons.Layers size={16}/></div>
                                                         )}
-                                                        <h4 className="text-sm font-black text-slate-800 truncate">{mem.name}</h4>
+                                                        <h4 className="text-sm font-black text-slate-200 truncate">{mem.name}</h4>
                                                     </div>
                                                     <div className="space-y-1">
                                                         {[mem.effect1, mem.effect2].filter(Boolean).map((eff, i) => (
-                                                            <div key={i} className="text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate">
+                                                            <div key={i} className="text-[10px] text-slate-400 bg-slate-950 px-2 py-1 rounded border border-slate-800 truncate">
                                                                 {formatEffect(eff)}
                                                             </div>
                                                         ))}
@@ -1864,7 +1869,7 @@
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="col-span-full py-10 text-center text-slate-400 text-sm font-bold">
+                                            <div className="col-span-full py-10 text-center text-slate-500 text-sm font-bold">
                                                 有効なメモリーが見つかりません。
                                             </div>
                                         )}
@@ -1876,14 +1881,14 @@
 
                     {/* Skill Detail Modal */}
                     {viewingSkill && (
-                        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-                                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 border border-slate-800">
+                                <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
                                     <div>
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{viewingSkill.charName} - Skill Detail</span>
-                                        <h2 className="text-xl font-bold text-slate-800">{viewingSkill.name || '名称未設定'}</h2>
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">{viewingSkill.charName} - Skill Detail</span>
+                                        <h2 className="text-xl font-bold text-slate-100">{viewingSkill.name || '名称未設定'}</h2>
                                     </div>
-                                    <button onClick={() => setViewingSkill(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><Icons.X size={20}/></button>
+                                    <button onClick={() => setViewingSkill(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors"><Icons.X size={20}/></button>
                                 </div>
                                 <div className="p-8 space-y-6">
                                     <div className="flex flex-wrap gap-2">
@@ -1893,7 +1898,7 @@
                                         {(viewingSkill.elements || []).map(elName => {
                                             const elInfo = SKILL_ELEMENTS.find(e => e.name === elName);
                                             return elInfo ? (
-                                                <span key={elName} className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${elInfo.color}`}>
+                                                <span key={elName} className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${elInfo.color.replace('bg-slate-200', 'bg-slate-800').replace('text-slate-500', 'text-slate-300').replace('border-slate-300', 'border-slate-600')}`}>
                                                     {elInfo.icon} {elName}
                                                 </span>
                                             ) : null;
@@ -1902,10 +1907,10 @@
 
                                     {(viewingSkill.effects || []).length > 0 && (
                                         <div className="space-y-2">
-                                            <h4 className="text-xs font-bold text-slate-400 border-b pb-1">特性</h4>
+                                            <h4 className="text-xs font-bold text-slate-500 border-b border-slate-800 pb-1">特性</h4>
                                             <div className="flex flex-wrap gap-2">
                                                 {viewingSkill.effects.map(eff => (
-                                                    <span key={eff} className="text-xs font-bold px-2 py-1 rounded border border-blue-200 bg-blue-50 text-blue-700">
+                                                    <span key={eff} className="text-xs font-bold px-2 py-1 rounded border border-blue-900/50 bg-blue-900/20 text-blue-300">
                                                         {eff}
                                                     </span>
                                                 ))}
@@ -1914,14 +1919,14 @@
                                     )}
 
                                     <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-slate-400 border-b pb-1 flex items-center gap-2"><Icons.FileText size={14}/> 説明文</h4>
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                                        <h4 className="text-xs font-bold text-slate-500 border-b border-slate-800 pb-1 flex items-center gap-2"><Icons.FileText size={14}/> 説明文</h4>
+                                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap min-h-[100px]">
                                             {viewingSkill.description || '説明文はありません。'}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-                                    <button onClick={() => setViewingSkill(null)} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold text-sm hover:bg-slate-700 shadow-md">閉じる</button>
+                                <div className="p-4 bg-slate-900 border-t border-slate-800 flex justify-end">
+                                    <button onClick={() => setViewingSkill(null)} className="px-6 py-2 bg-slate-800 text-slate-300 rounded-lg font-bold text-sm hover:bg-slate-700 shadow-md border border-slate-700">閉じる</button>
                                 </div>
                             </div>
                         </div>
@@ -1929,27 +1934,27 @@
 
                     {/* Alert / Confirm Dialog */}
                     {alertState.isOpen && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+                            <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden scale-100 animate-in zoom-in-95 duration-200 border border-slate-800">
                                 <div className="p-6 text-center">
-                                    <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${alertState.type === 'confirm' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500'}`}>
+                                    <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${alertState.type === 'confirm' ? 'bg-red-900/30 text-red-500' : 'bg-blue-900/30 text-blue-500'}`}>
                                         {alertState.type === 'confirm' ? <Icons.AlertTriangle size={24} /> : <Icons.AlertCircle size={24} />}
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900 mb-2">{alertState.title}</h3>
-                                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{alertState.message}</p>
+                                    <h3 className="text-lg font-bold text-slate-100 mb-2">{alertState.title}</h3>
+                                    <p className="text-sm text-slate-400 font-medium leading-relaxed">{alertState.message}</p>
                                 </div>
-                                <div className="flex border-t border-slate-100 bg-slate-50">
+                                <div className="flex border-t border-slate-800 bg-slate-900">
                                     {alertState.type === 'confirm' ? (
                                         <>
                                             <button 
                                                 onClick={closeAlert} 
-                                                className="flex-1 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors border-r border-slate-100"
+                                                className="flex-1 py-3 text-sm font-bold text-slate-400 hover:bg-slate-800 transition-colors border-r border-slate-800"
                                             >
                                                 キャンセル
                                             </button>
                                             <button 
                                                 onClick={handleConfirmAction} 
-                                                className="flex-1 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                                                className="flex-1 py-3 text-sm font-bold text-red-400 hover:bg-red-900/20 transition-colors"
                                             >
                                                 削除する
                                             </button>
@@ -1957,7 +1962,7 @@
                                     ) : (
                                         <button 
                                             onClick={closeAlert} 
-                                            className="w-full py-3 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors"
+                                            className="w-full py-3 text-sm font-bold text-blue-400 hover:bg-blue-900/20 transition-colors"
                                         >
                                             OK
                                         </button>
