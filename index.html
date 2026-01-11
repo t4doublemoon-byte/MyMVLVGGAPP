@@ -689,7 +689,11 @@
             // Filtered Characters for Party Selection
             const availableCharacters = useMemo(() => {
                 if (selectedSlot === null) return [];
-                const usedCharIds = partySlots.map((s, idx) => (idx !== selectedSlot && s) ? s.charId : null).filter(Boolean);
+                
+                // 変更: 現在のスロットも含めて、編成済みの全キャラクターIDを除外リストとする
+                // これにより、そのスロットにいる本人もリストから消える（要件：そのメンバーを一覧に表示しない）
+                const usedCharIds = partySlots.map(s => s ? s.charId : null).filter(Boolean);
+
                 let list = [...characters];
                 if (searchQuery) {
                     const q = searchQuery.toLowerCase();
@@ -849,6 +853,17 @@
 
             // Party Editor Functions
             const handleSlotClick = (index) => {
+                const currentSlot = partySlots[index];
+                
+                // 変更: 既に5体のメンバーがいる場合、空きスロットのクリックを無効化
+                if (!currentSlot) {
+                    const currentMemberCount = partySlots.filter(s => s && s.charId).length;
+                    if (currentMemberCount >= 5) {
+                        alert("パーティメンバーは最大5人までです");
+                        return;
+                    }
+                }
+
                 // 常に選択ダイアログを開く（解除ではなく入れ替え/選択）
                 setSelectedSlot(index);
                 setSearchQuery(''); // Reset search when opening modal
@@ -1314,7 +1329,21 @@
                                             </div>
                                             <div className="flex-grow overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                    {/* 「選択を解除」ボタンは削除されました */}
+                                                    {/* 変更: 選択済みのメンバーをクリックした時（スロットに中身がある時）のみ解除ボタンを表示 */}
+                                                    {partySlots[selectedSlot] && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newSlots = [...partySlots];
+                                                                newSlots[selectedSlot] = null;
+                                                                setPartySlots(newSlots);
+                                                                setSelectedSlot(null);
+                                                            }}
+                                                            className="h-32 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 hover:bg-red-100 hover:border-red-400 flex flex-col items-center justify-center text-red-500 gap-2 transition-colors font-bold"
+                                                        >
+                                                            <Icons.X size={24} />
+                                                            <span>選択を解除</span>
+                                                        </button>
+                                                    )}
 
                                                     {availableCharacters.length > 0 ? (
                                                         availableCharacters.map(char => (
@@ -1333,7 +1362,7 @@
                                                         ))
                                                     ) : (
                                                         <div className="col-span-full py-20 text-center text-slate-400 font-bold">
-                                                            選択可能なメンバーがいません
+                                                            {partySlots[selectedSlot] ? "入れ替え可能なメンバーがいません" : "選択可能なメンバーがいません"}
                                                         </div>
                                                     )}
                                                 </div>
