@@ -220,15 +220,24 @@
                 rec: { percent: 0, fixed: 0 }
             };
 
-            if (activeMembers.length === 0) return { bonuses: [], totalBuffs: initialBuffs, attrCounts: {} };
+            if (activeMembers.length === 0) return { bonuses: [], totalBuffs: initialBuffs, attrCounts: {}, roleCounts: {} };
 
             const attrCounts = {};
             ATTRIBUTES.forEach(a => attrCounts[a.name] = 0);
+            
+            const roleCounts = {};
+            ROLES.forEach(r => roleCounts[r] = 0);
             
             let cleverCount = 0;
             let comicalCount = 0;
 
             activeMembers.forEach(char => {
+                // Role Count
+                if (char.role) {
+                    roleCounts[char.role] = (roleCounts[char.role] || 0) + 1;
+                }
+
+                // Attribute Count
                 if (char.attribute === 'クレバー') {
                     cleverCount++;
                 } else if (char.attribute === 'コミカル') {
@@ -292,7 +301,7 @@
                 bonuses.push({ text: text, effects: eff });
             }
 
-            return { bonuses, totalBuffs, attrCounts, cleverCount, comicalCount };
+            return { bonuses, totalBuffs, attrCounts, cleverCount, comicalCount, roleCounts };
         };
 
         const getMemoryImpactScore = (memory, members, characters) => {
@@ -840,14 +849,9 @@
 
             // Party Editor Functions
             const handleSlotClick = (index) => {
-                if (partySlots[index]) {
-                     const newSlots = [...partySlots];
-                     newSlots[index] = null;
-                     setPartySlots(newSlots);
-                } else {
-                     setSelectedSlot(index);
-                     setSearchQuery(''); // Reset search when opening modal
-                }
+                // 常に選択ダイアログを開く（解除ではなく入れ替え/選択）
+                setSelectedSlot(index);
+                setSearchQuery(''); // Reset search when opening modal
             };
             
             const handleCharSelect = (char) => {
@@ -1216,7 +1220,7 @@
                                     
                                     {/* Attr Counts */}
                                     <div className="space-y-4 mb-6">
-                                        <h4 className="text-xs font-bold text-slate-400">Formation</h4>
+                                        <h4 className="text-xs font-bold text-slate-400">Formation (Attributes)</h4>
                                         <div className="grid grid-cols-3 gap-2">
                                             {Object.entries(partyStats.attrCounts).map(([attr, count]) => {
                                                 if(count === 0 && attr !== 'クレバー' && attr !== 'コミカル') return null;
@@ -1228,6 +1232,19 @@
                                                     </div>
                                                 ) : null;
                                             })}
+                                        </div>
+                                    </div>
+
+                                    {/* Role Counts */}
+                                    <div className="space-y-3 mb-6">
+                                        <h4 className="text-xs font-bold text-slate-400">Roles</h4>
+                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                                            {Object.entries(partyStats.roleCounts || {}).map(([role, count]) => (
+                                                <div key={role} className="flex justify-between items-center text-xs">
+                                                    <span className={`font-bold ${count > 0 ? 'text-slate-700' : 'text-slate-400'}`}>{role}</span>
+                                                    <span className={`font-black ${count > 0 ? 'text-blue-600' : 'text-slate-300'}`}>{count}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
 
