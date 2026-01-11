@@ -195,8 +195,17 @@
                 return char;
             }).filter(Boolean);
 
-            // 初期値に rec (回復率) を追加
-            if (activeMembers.length === 0) return { bonuses: [], totalBuffs: { atk: 0, hp: 0, def: 0, crit: 0, speed: 0, rec: 0 }, attrCounts: {} };
+            // 初期化: 各ステータスに percent と fixed を持たせる
+            const initialBuffs = {
+                atk: { percent: 0, fixed: 0 },
+                hp: { percent: 0, fixed: 0 },
+                def: { percent: 0, fixed: 0 },
+                crit: { percent: 0, fixed: 0 },
+                speed: { percent: 0, fixed: 0 },
+                rec: { percent: 0, fixed: 0 }
+            };
+
+            if (activeMembers.length === 0) return { bonuses: [], totalBuffs: initialBuffs, attrCounts: {} };
 
             const attrCounts = {};
             ATTRIBUTES.forEach(a => attrCounts[a.name] = 0);
@@ -233,36 +242,38 @@
             }
 
             const bonuses = [];
-            let totalBuffs = { atk: 0, hp: 0, def: 0, crit: 0, speed: 0, rec: 0 };
+            // ディープコピーで初期化
+            let totalBuffs = JSON.parse(JSON.stringify(initialBuffs));
 
             const counts = Object.values(attrCounts).filter(c => c > 0).sort((a, b) => b - a);
             const maxCount = counts[0] || 0;
             const secondCount = counts[1] || 0;
 
+            // 属性ボーナスは基本的に % 加算とする
             if (maxCount >= 5) {
                 bonuses.push({ text: '5体同属性ボーナス', effects: '攻撃+25% / HP+25%' });
-                totalBuffs.atk += 25; totalBuffs.hp += 25;
+                totalBuffs.atk.percent += 25; totalBuffs.hp.percent += 25;
             } else if (maxCount === 4) {
                 bonuses.push({ text: '4体同属性ボーナス', effects: '攻撃+15% / HP+20%' });
-                totalBuffs.atk += 15; totalBuffs.hp += 20;
+                totalBuffs.atk.percent += 15; totalBuffs.hp.percent += 20;
             } else if (maxCount === 3) {
                 if (secondCount >= 2) {
                     bonuses.push({ text: '3-2属性ボーナス', effects: '攻撃+15% / HP+15%' });
-                    totalBuffs.atk += 15; totalBuffs.hp += 15;
+                    totalBuffs.atk.percent += 15; totalBuffs.hp.percent += 15;
                 } else {
                     bonuses.push({ text: '3体同属性ボーナス', effects: '攻撃+10% / HP+10%' });
-                    totalBuffs.atk += 10; totalBuffs.hp += 10;
+                    totalBuffs.atk.percent += 10; totalBuffs.hp.percent += 10;
                 }
             }
 
             if (cleverCount > 0) {
                 let text = `クレバーボーナス(${cleverCount}体)`;
                 let eff = '';
-                if (cleverCount === 1) { eff = '防御+30%'; totalBuffs.def += 30; }
-                else if (cleverCount === 2) { eff = '攻撃+10% / HP+10%'; totalBuffs.atk += 10; totalBuffs.hp += 10; }
-                else if (cleverCount === 3) { eff = '会心+15%'; totalBuffs.crit += 15; }
-                else if (cleverCount === 4) { eff = '攻撃+15% / HP+15%'; totalBuffs.atk += 15; totalBuffs.hp += 15; }
-                else if (cleverCount >= 5) { eff = '攻撃+15% / HP+25%'; totalBuffs.atk += 15; totalBuffs.hp += 25; }
+                if (cleverCount === 1) { eff = '防御+30%'; totalBuffs.def.percent += 30; }
+                else if (cleverCount === 2) { eff = '攻撃+10% / HP+10%'; totalBuffs.atk.percent += 10; totalBuffs.hp.percent += 10; }
+                else if (cleverCount === 3) { eff = '会心+15%'; totalBuffs.crit.percent += 15; }
+                else if (cleverCount === 4) { eff = '攻撃+15% / HP+15%'; totalBuffs.atk.percent += 15; totalBuffs.hp.percent += 15; }
+                else if (cleverCount >= 5) { eff = '攻撃+15% / HP+25%'; totalBuffs.atk.percent += 15; totalBuffs.hp.percent += 25; }
                 bonuses.push({ text: text, effects: eff });
             }
 
@@ -353,6 +364,7 @@
                                     <span className="text-[9px] font-black text-slate-400 block italic uppercase">Score</span>
                                     <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
                                 </div>
+                                {/* 選択モードでもボタンを表示するよう変更。クリック伝播を防止 */}
                                 <div className="flex gap-1.5">
                                     <button onClick={(e) => { e.stopPropagation(); onLookup(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all shadow-sm" title="影響メモリー検索"><Icons.Search size={14}/></button>
                                     <button onClick={(e) => { e.stopPropagation(); onEdit(char); }} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-all shadow-sm"><Icons.Edit3 size={14}/></button>
@@ -372,7 +384,7 @@
                             </div>
                         </div>
                         
-                        {/* Expand Content */}
+                        {/* 展開表示 (選択モードでも表示許可) */}
                         {isExpanded && (
                             <div className="px-4 pb-4 pt-3 space-y-2 border-t border-slate-100 bg-white/95 animate-in slide-in-from-top-4">
                                 <h4 className="text-[9px] font-black text-slate-400 uppercase italic flex items-center gap-2 mb-2"><Icons.Zap size={10} className="text-yellow-500"/> Skill Protocols</h4>
@@ -823,7 +835,9 @@
             
             // Total Buffs (including memories)
             const totalStats = useMemo(() => {
-                const stats = { ...partyStats.totalBuffs };
+                // ディープコピーで取得
+                const stats = JSON.parse(JSON.stringify(partyStats.totalBuffs));
+                
                 equippedMemories.forEach(m => {
                     if (!m) return;
                     const mem = memories.find(mm => mm.firebaseId === m.memoryId);
@@ -832,12 +846,16 @@
                     [mem.effect1, mem.effect2].filter(Boolean).forEach(eff => {
                         const key = PARAM_KEY_MAP[eff.param];
                         if (key) {
+                            // %が含まれていれば割合、なければ固定値として扱う
+                            const isPercent = String(eff.value).includes('%');
                             const val = parseFloat(eff.value);
+                            const targetKey = isPercent ? 'percent' : 'fixed';
+
                             if (!isNaN(val)) {
                                 if (eff.direction === '下降') {
-                                    stats[key] -= val;
+                                    stats[key][targetKey] -= val;
                                 } else {
-                                    stats[key] += val;
+                                    stats[key][targetKey] += val;
                                 }
                             }
                         }
@@ -1127,9 +1145,19 @@
                                             {Object.entries(totalStats).map(([key, val]) => (
                                                 <div key={key}>
                                                     <span className="text-[9px] text-slate-500 block uppercase">{STAT_LABELS[key] || key}</span>
-                                                    <span className={`text-xl font-black ${val > 0 ? 'text-green-400' : (val < 0 ? 'text-red-400' : 'text-slate-600')}`}>
-                                                        {val > 0 ? '+' : ''}{val}%
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        {val.percent !== 0 && (
+                                                            <span className={`text-lg font-black leading-tight ${val.percent > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {val.percent > 0 ? '+' : ''}{val.percent}%
+                                                            </span>
+                                                        )}
+                                                        {val.fixed !== 0 && (
+                                                            <span className={`text-xs font-bold leading-tight ${val.fixed > 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                                                ({val.fixed > 0 ? '+' : ''}{val.fixed})
+                                                            </span>
+                                                        )}
+                                                        {val.percent === 0 && val.fixed === 0 && <span className="text-lg font-black text-slate-600">---</span>}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
