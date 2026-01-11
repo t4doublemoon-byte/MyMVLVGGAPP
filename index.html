@@ -625,6 +625,7 @@
             const [filterAttr, setFilterAttr] = useState('ALL');
             const [filterFaction, setFilterFaction] = useState('ALL');
             const [filterSkillEffect, setFilterSkillEffect] = useState('ALL');
+            const [filterFavorite, setFilterFavorite] = useState('ALL'); // 追加: お気に入りフィルター
             const [filterMemTarget, setFilterMemTarget] = useState('ALL');
             const [filterMemParam, setFilterMemParam] = useState('ALL');
             const [sortBy, setSortBy] = useState('score');
@@ -699,6 +700,7 @@
                     if (filterAttr !== 'ALL') list = list.filter(c => c.attribute === filterAttr);
                     if (filterFaction !== 'ALL') list = list.filter(c => c.faction === filterFaction);
                     if (filterSkillEffect !== 'ALL') list = list.filter(c => c.skills?.some(s => s.effects?.includes(filterSkillEffect)));
+                    if (filterFavorite === 'FAV') list = list.filter(c => c.isFavorite); // 追加: お気に入りフィルター処理
                 } else {
                     if (filterMemTarget !== 'ALL') {
                         list = list.filter(m => 
@@ -718,6 +720,9 @@
                     let valA, valB;
                     if (isChar && sortBy === 'score') {
                         valA = calculateTotalScore(a); valB = calculateTotalScore(b);
+                    } else if (isChar && sortBy === 'favorite') { // 追加: お気に入りソート
+                        valA = a.isFavorite ? 1 : 0;
+                        valB = b.isFavorite ? 1 : 0;
                     } else if (sortBy === 'name') {
                         valA = a.name || ""; valB = b.name || "";
                     } else {
@@ -729,7 +734,7 @@
                 });
 
                 return list;
-            }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterMemTarget, filterMemParam, sortBy, sortOrder]);
+            }, [activeTab, characters, memories, searchQuery, filterRole, filterAttr, filterFaction, filterSkillEffect, filterFavorite, filterMemTarget, filterMemParam, sortBy, sortOrder]);
 
             // Filtered Characters for Party Selection
             const availableCharacters = useMemo(() => {
@@ -933,7 +938,8 @@
 
             const resetFilters = () => {
                 setFilterRole('ALL'); setFilterAttr('ALL'); setFilterFaction('ALL');
-                setFilterSkillEffect('ALL'); setSearchQuery('');
+                setFilterSkillEffect('ALL'); setFilterFavorite('ALL'); // 追加: リセット
+                setSearchQuery('');
                 setFilterMemTarget('ALL'); setFilterMemParam('ALL');
             };
 
@@ -1084,6 +1090,7 @@
                                     <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterAttr} onChange={e => setFilterAttr(e.target.value)}><option value="ALL">属性: ALL</option>{ATTRIBUTES.map(a => <option key={a.name} value={a.name}>{a.name}</option>)}</select>
                                     <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFaction} onChange={e => setFilterFaction(e.target.value)}><option value="ALL">勢力: ALL</option>{existingFactions.map(f => <option key={f} value={f}>{f}</option>)}</select>
                                     <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterSkillEffect} onChange={e => setFilterSkillEffect(e.target.value)}><option value="ALL">特性: ALL</option>{SKILL_EFFECTS.map(ef => <option key={ef} value={ef}>{ef}</option>)}</select>
+                                    <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={filterFavorite} onChange={e => setFilterFavorite(e.target.value)}><option value="ALL">お気に入り: ALL</option><option value="FAV">お気に入り: ★のみ</option></select>
                                 </>
                             ) : (
                                 <>
@@ -1101,7 +1108,7 @@
                                 </>
                             )}
                             
-                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL')) || 
+                            {((activeTab === 'characters' && (filterRole !== 'ALL' || filterAttr !== 'ALL' || filterFaction !== 'ALL' || filterSkillEffect !== 'ALL' || filterFavorite !== 'ALL')) || 
                               (activeTab === 'memories' && (filterMemTarget !== 'ALL' || filterMemParam !== 'ALL'))) && 
                               <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase italic">Clear</button>
                             }
@@ -1110,6 +1117,7 @@
                                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold"><Icons.SortAsc size={14}/> 並び替え:</div>
                                 <select className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold py-1.5 px-3 rounded-md outline-none" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                                     {activeTab === 'characters' && <option value="score">総合スコア</option>}
+                                    {activeTab === 'characters' && <option value="favorite">お気に入り順</option>}
                                     <option value="name">名前順</option>
                                     <option value="date">登録日順</option>
                                 </select>
